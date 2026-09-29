@@ -24,4 +24,4 @@ detector:
   nms_iou: 0.5
   detections_per_img: 300  # images hold up to 163 ships
   raw_score_thresh: 0.05   # lowest score kept for AP50 and the F1 threshold search
-  score_threshold: null    # set from det_val F1 by `sarqa detector infer`, then frozen
+  score_threshold: 0.96    # set from det_val F1 by `sarqa detector infer`, then frozen
