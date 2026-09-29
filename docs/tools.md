@@ -109,13 +109,13 @@
 
 <!--params get_metadata: image_id -->
 
-HRSID의 연안/외해 파일에서 온 장면 태그. **해상도(m/px)와 센서는 제공하지 않는다**(데이터에 없음, `docs/data_notes.md` §6, 사용자 결정 §16-1). 그래서 거리·길이 질문은 px 단위다. 상자 출처와 무관하다.
+HRSID의 연안/외해 파일에서 온 장면 태그와 **영상 파일에서 읽은 실제 크기**(px). **해상도(m/px)와 센서는 제공하지 않는다**(데이터에 없음, `docs/data_notes.md` §6, 사용자 결정 §16-1). 그래서 거리·길이 질문은 px 단위다. `width`·`height`는 해상도가 아니라 크기라서 이 결정과 충돌하지 않는다(HRSID는 모두 800×800이지만 설정값이 아니라 영상에서 읽는다). 상자 출처와 무관하다.
 
-출력: `scene` (`inshore | offshore`).
+출력: `scene` (`inshore | offshore`), `width`, `height` (px).
 
 <!--example {"tool": "get_metadata", "args": {"image_id": "m3.jpg"}} -->
 ```json
-{"scene":"inshore"}
+{"scene":"inshore","width":800,"height":800}
 ```
 
 ### 2.4 `image_stats(image_id, region="full")`
