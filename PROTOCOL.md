@@ -10,8 +10,9 @@
 | `splits/scenes.json` | 확정 (M0) | `9cbb465d6cfbeaf1d33ea7ee4c74d20fcdce05d13b986e717ff1c6ddd3f05433` |
 | `splits/splits.json` | 확정 (M0) | `6dc6266ac307ed04cb96eb982868ea797cb3a3bbebb3f75eb11b55468604d3f8` |
 | `splits/splits_report.json` | 확정 (M0) | `fd6928fa404a32d1c0c6a5d90c256b818b9f43a4bd97fb28c52818d7d4631b7f` |
-| `outputs/detector/weights.pt` (탐지기 가중치) | 미정 (M1 학습 후) | — |
-| `data/detections/dev.json`, `data/detections/test.json` | 미정 (M1) | — |
+| `outputs/detector/weights.pt` (탐지기 가중치, epoch 10) | 확정 (M1) | `2d2bab8cbfe7f10181ac6501959dcc7c86b30b23cda7497e09711ae260a35ca6` |
+| `data/detections/dev.json` | 확정 (M1) | `883487083bf1e0618e8abdf79fa7de148d36c322067aa7d1705ffea947437a06` |
+| `data/detections/test.json` | 확정 (M1) | `b082f6cd08c892ddbe027894c1482c606077e57ffc3db1f5e4b2275121b50d42` |
 | `data/injected/*.json`, `data/corrected/*.json` | 미정 (M5) | — |
 | test 문항 파일 | 미정 (M5) | — |
 
@@ -32,7 +33,17 @@
 ## 4. 탐지기 (SPEC §4.3; 상세는 `configs/default.yaml`의 `detector`)
 
 - torchvision `fasterrcnn_resnet50_fpn`, COCO 사전학습에서 시작, 클래스 2개. HRSID 학습 가중치는 쓰지 않는다.
-- 점수 임계값은 `det_val` F1 최대값으로 정해 `configs/default.yaml`에 고정한다 (M1 학습 후 채움).
+- 학습: `det_train` 3,722장, 20 에폭, 배치 4, SGD lr 0.01(500 iter 워밍업 후 cosine), AMP, grad clip 10, 수평 뒤집기만. 실행 커밋 `66c6d21`, 재시도 없이 1회에 완료, 비정상 손실 0회. 매 에폭 `det_val` AP50을 기록해 **epoch 10**(AP50 0.9355)을 가중치로 저장했다.
+- 점수 임계값 **0.96**: `det_val`에서 IoU 0.5 F1이 최대인 값(0.05~0.99, 0.01 간격, 동점이면 높은 쪽). `configs/default.yaml`의 `detector.score_threshold`에 고정. NMS IoU 0.5, 영상당 최대 300개.
+- 결과 (`outputs/detector_report.json`, 임계값 0.96 기준. **test는 보고만 하고 어떤 값도 test로 정하지 않았다**. 분할이 장면 단위라 HRSID 논문 수치와 직접 비교하지 않는다):
+
+| 분할 | 영상 | 라벨 | AP50 | 정밀도 | 재현율 | F1 | 누락 | 오탐 | 위치·크기 |
+|---|---|---|---|---|---|---|---|---|---|
+| det_val | 527 | 1,299 | 0.936 | 0.941 | 0.871 | 0.904 | 168 (12.9%) | 71 | 96 (7.4%) |
+| dev | 393 | 905 | 0.939 | 0.950 | 0.859 | 0.902 | 128 (14.1%) | 41 | 60 (6.6%) |
+| test | 962 | 3,050 | 0.881 | 0.945 | 0.772 | 0.850 | 695 (22.8%) | 137 | 228 (7.5%) |
+
+  연안/외해별 누락률: dev 31.2% / 2.8%, test 41.6% / 2.8%. 누락은 연안(밀집·작은 선박)에 몰려 있고 오탐은 영상당 0.1개 안팎으로 적다.
 
 ## 5. 이후 채울 항목
 
