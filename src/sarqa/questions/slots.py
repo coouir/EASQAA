@@ -98,9 +98,9 @@ def unique_extreme(values, kind: str) -> bool:
 
 def stat_argmax_clear(values: dict) -> bool:
     """The best statistic beats the runner-up by ARGMAX_GAP (relative) and none is missing."""
-    vals = sorted(values.values(), reverse=True)
-    if any(v is None for v in vals) or len(vals) < 2:
+    if any(v is None for v in values.values()) or len(values) < 2:
         return False
+    vals = sorted(values.values(), reverse=True)
     return vals[0] - vals[1] > ARGMAX_GAP * abs(vals[0])
 
 
