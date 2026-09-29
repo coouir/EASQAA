@@ -85,10 +85,9 @@ EASQAA/
 │   ├── data_notes.md        # HRSID 실제 파일 구조 확인 결과 (M0 산출)
 │   ├── tools.md             # 도구별 JSON 스키마 (M2 산출)
 │   └── deviations.md        # 명세와 달라진 점
+├── splits/                  # 저장소에 커밋: scenes.json(영상 → 장면 묶음), splits.json(묶음 → det_train / det_val / dev / test), splits_report.json
 ├── data/                    # .gitignore
 │   ├── hrsid/               # 원본 (사용자가 내려받아 둠)
-│   ├── scenes.json          # 영상 → 장면 묶음
-│   ├── splits.json          # 묶음 → det_train / det_val / dev / test
 │   ├── detections/          # {dev,test}.json 탐지기 출력 캐시
 │   ├── injected/            # (문항 영상, 유형)별 주입 상자
 │   └── corrected/           # (문항 영상, 유형)별 수정 상자
