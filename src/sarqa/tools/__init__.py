@@ -1,6 +1,7 @@
 """The five tools (SPEC §5.2). Importing this package registers them in `TOOLS`."""
 
 from sarqa.tools import (  # noqa: F401  (register the tools)
+    calc,
     detect_ships,
     get_metadata,
     image_stats,
