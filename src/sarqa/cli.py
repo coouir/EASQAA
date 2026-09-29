@@ -23,7 +23,7 @@ def build_parser() -> argparse.ArgumentParser:
     splits.add_argument("--no-dhash", action="store_true", help="skip the auxiliary dHash check")
     det = sub.add_parser("detector", help="detector training and inference").add_subparsers(
         dest="detector_command")
-    for name in ("train",):
+    for name in ("train", "infer"):
         det.add_parser(name, help=f"{name} (extra args are forwarded)").add_argument(
             "rest", nargs=argparse.REMAINDER)
     return parser
