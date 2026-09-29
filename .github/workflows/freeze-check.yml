@@ -1,0 +1,29 @@
+name: freeze-check
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+jobs:
+  frozen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fail if this PR changes frozen paths without the label
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HAS_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'frozen-change') }}
+        run: |
+          git fetch --tags --quiet origin
+          TAG=$(git tag -l 'freeze-v*' | sort -V | tail -1)
+          if [ -z "$TAG" ]; then echo "not frozen yet"; exit 0; fi
+          # 이 PR 자신의 변경만 본다 (태그 이후 main에 이미 병합된 변경은 제외)
+          CHANGED=$(git diff --name-only "origin/${BASE_REF}...HEAD" -- \
+            src/sarqa configs pyproject.toml PROTOCOL.md \
+            ':(exclude)src/sarqa/analysis')
+          if [ -z "$CHANGED" ]; then echo "no frozen changes (latest tag: $TAG)"; exit 0; fi
+          echo "Frozen paths changed in this PR (latest tag: $TAG):"; echo "$CHANGED"
+          if [ "$HAS_LABEL" = "true" ]; then
+            echo "frozen-change label present"; exit 0
+          fi
+          echo "Frozen files changed without the frozen-change label"; exit 1
