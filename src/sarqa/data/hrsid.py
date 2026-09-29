@@ -38,3 +38,8 @@ def boxes_by_file(coco: dict) -> dict[str, list[tuple[float, float, float, float
     for a in coco["annotations"]:
         out[names[a["image_id"]]].append(tuple(a["bbox"]))
     return out
+
+
+def xywh_to_xyxy(box) -> tuple[float, float, float, float]:
+    x, y, w, h = box
+    return (float(x), float(y), float(x + w), float(y + h))
