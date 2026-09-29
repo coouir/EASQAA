@@ -1,0 +1,27 @@
+# Default settings. Paths are relative to the repository root.
+seed: 20260929
+
+paths:
+  hrsid_root: data/hrsid/HRSID_JPG
+  splits: splits/splits.json
+  detections_dir: data/detections
+  detector_dir: outputs/detector
+  detector_report: outputs/detector_report.json
+
+detector:
+  # SPEC §4.3: torchvision fasterrcnn_resnet50_fpn from COCO weights, 2 classes (background, ship)
+  epochs: 20
+  batch_size: 4
+  lr: 0.01
+  momentum: 0.9
+  weight_decay: 1.0e-4
+  warmup_iters: 500        # linear warm-up, then cosine decay to 0 (not specified in SPEC)
+  grad_clip: 10.0          # max grad norm (not specified in SPEC; guards lr 0.01 at batch 4)
+  amp: true
+  num_workers: 6
+  min_size: 800            # input kept at the native 800x800
+  max_size: 800
+  nms_iou: 0.5
+  detections_per_img: 300  # images hold up to 163 ships
+  raw_score_thresh: 0.05   # lowest score kept for AP50 and the F1 threshold search
+  score_threshold: null    # set from det_val F1 by `sarqa detector infer`, then frozen

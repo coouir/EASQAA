@@ -21,6 +21,11 @@ def build_parser() -> argparse.ArgumentParser:
     splits.add_argument("--out", default="splits/splits.json")
     splits.add_argument("--report", default="splits/splits_report.json")
     splits.add_argument("--no-dhash", action="store_true", help="skip the auxiliary dHash check")
+    det = sub.add_parser("detector", help="detector training and inference").add_subparsers(
+        dest="detector_command")
+    for name in ("train",):
+        det.add_parser(name, help=f"{name} (extra args are forwarded)").add_argument(
+            "rest", nargs=argparse.REMAINDER)
     return parser
 
 
@@ -40,4 +45,8 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({k: v for k, v in rep.items() if k != "dhash_aux"}, indent=1))
         if "dhash_aux" in rep:
             print("dhash cross-split pairs:", rep["dhash_aux"]["n_cross_split_pairs"])
+    if args.command == "detector" and args.detector_command:
+        import importlib
+
+        return importlib.import_module(f"sarqa.detector.{args.detector_command}").main(args.rest)
     return 0
