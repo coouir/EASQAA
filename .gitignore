@@ -1,0 +1,7 @@
+data/
+outputs/
+.conda/
+.venv/
+__pycache__/
+*.py[cod]
+.env
