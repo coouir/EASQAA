@@ -4,6 +4,7 @@ seed: 20260929
 paths:
   hrsid_root: data/hrsid/HRSID_JPG
   splits: splits/splits.json
+  scenes: splits/scenes.json
   detections_dir: data/detections
   detector_dir: outputs/detector
   detector_report: outputs/detector_report.json
@@ -25,3 +26,9 @@ detector:
   detections_per_img: 300  # images hold up to 163 ships
   raw_score_thresh: 0.05   # lowest score kept for AP50 and the F1 threshold search
   score_threshold: 0.96    # set from det_val F1 by `sarqa detector infer`, then frozen
+
+tools:
+  image_size: 800          # all HRSID images are 800x800 (docs/data_notes.md §2)
+  edge_margin_px: 20       # "near the edge": a box side within this many px of the border (SPEC §5.1, confirm on dev)
+  distance_decimals: 1     # centre-to-centre distance rounding (SPEC §5.1)
+  image_cache: 64          # decoded grayscale images kept in memory
