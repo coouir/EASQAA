@@ -32,3 +32,13 @@ tools:
   edge_margin_px: 20       # "near the edge": a box side within this many px of the border (SPEC §5.1, confirm on dev)
   distance_decimals: 1     # centre-to-centre distance rounding (SPEC §5.1)
   image_cache: 64          # decoded grayscale images kept in memory
+
+llm:
+  # SPEC §7.1: qwen3:8b via Ollama, text only. Defaults to be confirmed in the pilot, then frozen.
+  model: "qwen3:8b"
+  host: "http://localhost:11434"
+  think: false
+  temperature: 0.2
+  num_ctx: 8192
+  num_predict: 2048        # per LLM call; long plans and interpretations fit well below this
+  wall_limit_s: 300        # per run (SPEC §7.1)
