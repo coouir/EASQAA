@@ -19,3 +19,10 @@ SAR 질의응답 에이전트 오류 분석 실험. 기준 문서는 SPEC.md.
 - sarqa run --conditions all --split test
 - sarqa classify --runs outputs/runs/
 - sarqa analyze --runs outputs/runs/
+
+## 환경
+- Python은 conda env `easqaa`(3.10)의 `/home/cvlab/anaconda3/envs/easqaa/bin/python`을 명시적으로 쓴다 (셸의 conda activate에 기대지 않는다).
+- 설치: `/home/cvlab/anaconda3/envs/easqaa/bin/pip install -e ".[dev]"` (탐지기는 `.[detector]`).
+- 데이터가 필요한 테스트는 `@pytest.mark.data`, GPU·Ollama가 필요한 테스트는 `@pytest.mark.gpu`. CI는 `pytest -m "not data and not gpu"`.
+- 이슈·PR 규칙은 SPEC §17, 초기 이슈는 부록 C.5.
+
