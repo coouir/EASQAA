@@ -34,6 +34,12 @@ def build_parser() -> argparse.ArgumentParser:
     val = qs.add_parser("validate", help="validate a question file")
     val.add_argument("--split", default="dev")
     val.add_argument("--questions", default=None)
+    run = sub.add_parser("run", help="run the experiment conditions")
+    run.add_argument("--conditions", default="all", help="'all' or a comma list, e.g. 1,2,6")
+    run.add_argument("--split", default="dev")
+    run.add_argument("--questions", default=None)
+    run.add_argument("--out", default="outputs/runs/")
+    run.add_argument("--limit", type=int, default=None, help="stop after this many runs (smoke test)")
     inj = sub.add_parser("inject", help="error injection / correction").add_subparsers(
         dest="inject_command")
     inj.add_parser("calibrate", help="measure dev detector errors, write configs/injection.yaml")
@@ -46,6 +52,24 @@ def build_parser() -> argparse.ArgumentParser:
         det.add_parser(name, help=f"{name} (extra args are forwarded)").add_argument(
             "rest", nargs=argparse.REMAINDER)
     return parser
+
+
+def _run_main(args) -> int:
+    from sarqa.config import repo_path
+    from sarqa.questions.generate import read_questions
+    from sarqa.run.conditions import parse_selection
+    from sarqa.run.runner import FreezeGuardError, run
+
+    qs = read_questions(repo_path(args.questions or f"data/questions/{args.split}.json"))
+    try:
+        summary = run(parse_selection(args.conditions), args.split, qs, repo_path(args.out),
+                      limit=args.limit)
+    except FreezeGuardError as e:
+        print(e)
+        return 2
+    for cond, s in sorted(summary.items()):
+        print(f"condition {cond}: {s}")
+    return 0
 
 
 def _inject_main(args) -> int:
@@ -131,6 +155,8 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({k: v for k, v in rep.items() if k != "dhash_aux"}, indent=1))
         if "dhash_aux" in rep:
             print("dhash cross-split pairs:", rep["dhash_aux"]["n_cross_split_pairs"])
+    if args.command == "run":
+        return _run_main(args)
     if args.command == "inject" and args.inject_command:
         return _inject_main(args)
     if args.command == "questions" and args.questions_command:
