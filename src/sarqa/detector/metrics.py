@@ -56,7 +56,7 @@ def prf(preds: dict, gts: dict, threshold: float, iou_thr: float = 0.5) -> dict:
 def best_f1_threshold(preds: dict, gts: dict, grid=None) -> dict:
     """Threshold with the highest F1 (ties: the higher threshold)."""
     if grid is None:
-        grid = np.round(np.arange(0.05, 0.96, 0.01), 2)
+        grid = np.round(np.arange(0.05, 1.0, 0.01), 2)  # 0.05..0.99: scores saturate near 1
     best = None
     for t in grid:
         r = prf(preds, gts, float(t))

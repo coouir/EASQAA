@@ -44,3 +44,10 @@ def test_best_f1_threshold_prefers_dropping_low_score_fp():
     preds = {"a": _p([SQ, OTHER], [0.9, 0.2])}
     best = best_f1_threshold(preds, gts)
     assert best["f1"] == 1.0 and best["threshold"] > 0.2
+
+
+def test_default_grid_reaches_099():
+    # a detector whose scores sit near 1 must still be able to pick a threshold above 0.95
+    gts = {"a": [SQ]}
+    preds = {"a": _p([SQ, OTHER], [0.9999, 0.97])}
+    assert best_f1_threshold(preds, gts)["threshold"] == 0.99
