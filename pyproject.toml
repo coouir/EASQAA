@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sarqa"
+version = "0.1.0"
+description = "Error analysis of SAR question-answering agents (EASQAA)"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "pillow",
+    "pyyaml",
+]
+
+[project.optional-dependencies]
+dev = ["ruff", "pytest"]
+detector = ["torch", "torchvision"]
+
+[project.scripts]
+sarqa = "sarqa.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "data: needs the HRSID files under data/hrsid (skipped in CI)",
+    "gpu: needs a GPU or a running Ollama server (skipped in CI)",
+]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
