@@ -34,12 +34,47 @@ def build_parser() -> argparse.ArgumentParser:
     val = qs.add_parser("validate", help="validate a question file")
     val.add_argument("--split", default="dev")
     val.add_argument("--questions", default=None)
+    inj = sub.add_parser("inject", help="error injection / correction").add_subparsers(
+        dest="inject_command")
+    inj.add_parser("calibrate", help="measure dev detector errors, write configs/injection.yaml")
+    bld = inj.add_parser("build", help="write injected/corrected boxes and reference answers")
+    bld.add_argument("--split", default="dev")
+    bld.add_argument("--questions", default=None)
     det = sub.add_parser("detector", help="detector training and inference").add_subparsers(
         dest="detector_command")
     for name in ("train", "infer"):
         det.add_parser(name, help=f"{name} (extra args are forwarded)").add_argument(
             "rest", nargs=argparse.REMAINDER)
     return parser
+
+
+def _inject_main(args) -> int:
+    import json
+
+    from sarqa.config import repo_path
+    from sarqa.inject import build as B
+    from sarqa.inject import calibrate as K
+
+    if args.inject_command == "calibrate":
+        cfg = K.calibrate("dev")
+        K.write_injection_yaml(cfg)
+        print(json.dumps({k: cfg[k] for k in ("n_images", "n_label_boxes", "size_cuts_long_side_px",
+                                              "miss_rate", "loc_rate", "dev_totals")}, indent=1))
+        return 0
+    if args.split == "test":
+        print("test boxes are built once, at freeze time (SPEC §14 M5), by the freeze procedure.")
+        return 2
+    from sarqa.questions import generate as G
+    from sarqa.tools import default_context
+
+    path = repo_path(args.questions or f"data/questions/{args.split}.json")
+    qs = G.read_questions(path)
+    ctx = default_context()
+    summary = B.build_boxes(args.split, sorted({q["image_id"] for q in qs}), ctx.scenes)
+    B.add_reference_answers(qs, ctx, args.split)
+    G.write_questions(qs, path)
+    print(json.dumps(summary, indent=1))
+    return 0
 
 
 def _questions_main(args) -> int:
@@ -96,6 +131,8 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({k: v for k, v in rep.items() if k != "dhash_aux"}, indent=1))
         if "dhash_aux" in rep:
             print("dhash cross-split pairs:", rep["dhash_aux"]["n_cross_split_pairs"])
+    if args.command == "inject" and args.inject_command:
+        return _inject_main(args)
     if args.command == "questions" and args.questions_command:
         return _questions_main(args)
     if args.command == "detector" and args.detector_command:
