@@ -40,6 +40,10 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--questions", default=None)
     run.add_argument("--out", default="outputs/runs/")
     run.add_argument("--limit", type=int, default=None, help="stop after this many runs (smoke test)")
+    pil = sub.add_parser("pilot-report", help="pilot summary of a dev run directory")
+    pil.add_argument("--runs", default="outputs/runs/pilotA")
+    pil.add_argument("--split", default="dev")
+    pil.add_argument("--out", default="docs/pilot_a.md")
     cls = sub.add_parser("classify", help="classify run records (input error, first deviation)")
     cls.add_argument("--runs", default="outputs/runs/")
     cls.add_argument("--split", default="dev")
@@ -56,6 +60,22 @@ def build_parser() -> argparse.ArgumentParser:
         det.add_parser(name, help=f"{name} (extra args are forwarded)").add_argument(
             "rest", nargs=argparse.REMAINDER)
     return parser
+
+
+def _pilot_report_main(args) -> int:
+    from pathlib import Path
+
+    from sarqa.classify import classify as CL
+    from sarqa.config import repo_path
+    from sarqa.questions.generate import read_questions
+    from sarqa.run.pilot import report
+
+    qs = read_questions(repo_path(f"data/questions/{args.split}.json"))
+    runs = repo_path(args.runs)
+    text = report(runs, CL.classify_all(runs, qs, args.split))
+    Path(repo_path(args.out)).write_text(text, encoding="utf-8")
+    print(text)
+    return 0
 
 
 def _classify_main(args) -> int:
@@ -172,6 +192,8 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({k: v for k, v in rep.items() if k != "dhash_aux"}, indent=1))
         if "dhash_aux" in rep:
             print("dhash cross-split pairs:", rep["dhash_aux"]["n_cross_split_pairs"])
+    if args.command == "pilot-report":
+        return _pilot_report_main(args)
     if args.command == "classify":
         return _classify_main(args)
     if args.command == "run":
