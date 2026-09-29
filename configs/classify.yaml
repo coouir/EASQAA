@@ -1,0 +1,4 @@
+# Box matching and detection-error definitions (SPEC §8.1). Frozen at freeze-v1.
+match:
+  iou: 0.5        # matched if IoU >= 0.5 (greedy, largest IoU first, one-to-one)
+  loc_iou: 0.75   # a matched pair with IoU < 0.75 is a location/size error (loc)
