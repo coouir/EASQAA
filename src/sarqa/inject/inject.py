@@ -26,7 +26,7 @@ class Injection:
 
 
 def _clamp(v: float) -> int:
-    return min(max(int(math.floor(v + 0.5)), 0), IMAGE)
+    return min(max(math.floor(v + 0.5), 0), IMAGE)
 
 
 def _iou(a, b) -> float:

@@ -12,9 +12,9 @@ from pathlib import Path
 
 from sarqa.boxes import detected_provider, file_provider, label_provider
 from sarqa.config import load_config, repo_path
+from sarqa.grading import value_matches
 from sarqa.inject.calibrate import load_injection
 from sarqa.inject.correct import correct
-from sarqa.grading import value_matches
 from sarqa.inject.inject import KINDS, check_injection, inject
 from sarqa.program import run_program
 
