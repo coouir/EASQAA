@@ -40,6 +40,10 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--questions", default=None)
     run.add_argument("--out", default="outputs/runs/")
     run.add_argument("--limit", type=int, default=None, help="stop after this many runs (smoke test)")
+    cls = sub.add_parser("classify", help="classify run records (input error, first deviation)")
+    cls.add_argument("--runs", default="outputs/runs/")
+    cls.add_argument("--split", default="dev")
+    cls.add_argument("--questions", default=None)
     inj = sub.add_parser("inject", help="error injection / correction").add_subparsers(
         dest="inject_command")
     inj.add_parser("calibrate", help="measure dev detector errors, write configs/injection.yaml")
@@ -52,6 +56,19 @@ def build_parser() -> argparse.ArgumentParser:
         det.add_parser(name, help=f"{name} (extra args are forwarded)").add_argument(
             "rest", nargs=argparse.REMAINDER)
     return parser
+
+
+def _classify_main(args) -> int:
+    import json
+
+    from sarqa.classify import classify as CL
+    from sarqa.config import repo_path
+    from sarqa.questions.generate import read_questions
+
+    qs = read_questions(repo_path(args.questions or f"data/questions/{args.split}.json"))
+    out = CL.classify_all(repo_path(args.runs), qs, args.split)
+    print(json.dumps(CL.summarize(out), indent=1, ensure_ascii=False))
+    return 0
 
 
 def _run_main(args) -> int:
@@ -155,6 +172,8 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({k: v for k, v in rep.items() if k != "dhash_aux"}, indent=1))
         if "dhash_aux" in rep:
             print("dhash cross-split pairs:", rep["dhash_aux"]["n_cross_split_pairs"])
+    if args.command == "classify":
+        return _classify_main(args)
     if args.command == "run":
         return _run_main(args)
     if args.command == "inject" and args.inject_command:
