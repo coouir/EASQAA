@@ -1,0 +1,2 @@
+[console_scripts]
+sarqa = sarqa.cli:main

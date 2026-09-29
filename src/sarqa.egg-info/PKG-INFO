@@ -1,0 +1,14 @@
+Metadata-Version: 2.4
+Name: sarqa
+Version: 0.1.0
+Summary: Error analysis of SAR question-answering agents (EASQAA)
+Requires-Python: >=3.10
+Requires-Dist: numpy
+Requires-Dist: pillow
+Requires-Dist: pyyaml
+Provides-Extra: dev
+Requires-Dist: ruff; extra == "dev"
+Requires-Dist: pytest; extra == "dev"
+Provides-Extra: detector
+Requires-Dist: torch; extra == "detector"
+Requires-Dist: torchvision; extra == "detector"

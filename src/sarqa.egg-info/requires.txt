@@ -1,0 +1,11 @@
+numpy
+pillow
+pyyaml
+
+[detector]
+torch
+torchvision
+
+[dev]
+ruff
+pytest
