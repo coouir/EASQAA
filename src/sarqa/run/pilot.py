@@ -30,13 +30,34 @@ def estimate_main_run(per_condition_mean_s: dict[int, float], stepwise_mean_s: f
             "hours_group1": groups[0]}
 
 
-def report(runs_dir: str | Path, classified: list[dict]) -> str:
+def pilot_b_subset(questions: list[dict], n: int = 30, seed: int = 0) -> list[dict]:
+    """A fixed dev subset for pilot B: per level a share of `n` (L1 6, L2 7, L3 8, L4 7, L5 2), drawn with
+    a deterministic RNG. Box-dependent questions are preferred (injection and correction need them)."""
+    from sarqa.questions.slots import rng_for
+
+    share = {"L1": 6, "L2": 7, "L3": 8, "L4": 7, "L5": 2}
+    assert sum(share.values()) == n
+    out = []
+    for level, k in share.items():
+        pool = sorted((q for q in questions if q["level"] == level), key=lambda q: (not q["box_dependent"], q["qid"]))
+        dep = [q for q in pool if q["box_dependent"]]
+        rest = [q for q in pool if not q["box_dependent"]]
+        rng = rng_for(seed, "pilotB", level)
+        rng.shuffle(dep)
+        out += (dep + rest)[:k]
+    return sorted(out, key=lambda q: q["qid"])
+
+
+def report(runs_dir: str | Path, classified: list[dict], title: str | None = None,
+           note: str = "") -> str:
     recs = load_records(Path(runs_dir))
     by_c = defaultdict(list)
     for r in recs:
         by_c[r["condition"]].append(r)
-    lines = ["# 파일럿 A 결과 (dev 90문항 × 조건 1·2, 디버깅용)", "",
+    lines = [f"# {title or '파일럿 A 결과 (dev 90문항 × 조건 1·2, 디버깅용)'}", "",
              "자동 생성: `sarqa.run.pilot`. 이 결과로 test 규칙을 정하지 않는다.", ""]
+    if note:
+        lines += [note, ""]
     lines += ["## 조건별 요약", "", "| 조건 | 실행 | 정확도 | 실패율 | format_error | 평균 도구 호출 | 평균 LLM 호출 | 평균 시간(s) |",
               "|---|---|---|---|---|---|---|---|"]
     means = {}

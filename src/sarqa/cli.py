@@ -44,6 +44,9 @@ def build_parser() -> argparse.ArgumentParser:
     pil.add_argument("--runs", default="outputs/runs/pilotA")
     pil.add_argument("--split", default="dev")
     pil.add_argument("--out", default="docs/pilot_a.md")
+    pil.add_argument("--questions", default=None)
+    pil.add_argument("--title", default=None)
+    pil.add_argument("--note", default="")
     cls = sub.add_parser("classify", help="classify run records (input error, first deviation)")
     cls.add_argument("--runs", default="outputs/runs/")
     cls.add_argument("--split", default="dev")
@@ -70,9 +73,9 @@ def _pilot_report_main(args) -> int:
     from sarqa.questions.generate import read_questions
     from sarqa.run.pilot import report
 
-    qs = read_questions(repo_path(f"data/questions/{args.split}.json"))
+    qs = read_questions(repo_path(args.questions or f"data/questions/{args.split}.json"))
     runs = repo_path(args.runs)
-    text = report(runs, CL.classify_all(runs, qs, args.split))
+    text = report(runs, CL.classify_all(runs, qs, args.split), args.title, args.note)
     Path(repo_path(args.out)).write_text(text, encoding="utf-8")
     print(text)
     return 0
