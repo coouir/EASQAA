@@ -39,7 +39,7 @@ llm:
   host: "http://localhost:11434"
   think: false
   temperature: 0.2
-  num_ctx: 8192
+  num_ctx: 16384          # was 8192 (SPEC §7.1): dev prompts reach 7.2k tokens (8.1k in a control run); see docs/context_length.md
   num_predict: 2048        # per LLM call; long plans and interpretations fit well below this
   keep_alive: -1           # keep the model loaded (an unload/reload between runs changes cache state)
   wall_limit_s: 300        # per run (SPEC §7.1)
