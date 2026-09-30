@@ -29,6 +29,25 @@ def _clamp(v: float) -> int:
     return min(max(math.floor(v + 0.5), 0), IMAGE)
 
 
+def expected_misses(cfg: dict, scene: str, labels: list) -> float:
+    """Expected number of missed labels of this image: the sum of the stratum miss rates."""
+    cuts = cfg["size_cuts_long_side_px"]
+    return sum(cfg["miss_rate"][stratum(max(b[2] - b[0], b[3] - b[1]), scene, cuts)] for b in labels)
+
+
+def fp_count(cfg: dict, scene: str, labels: list, rng) -> int:
+    """False positives to inject into one image.
+
+    `fp_count_rule: expected_miss` (configs/injection.yaml): as many as the stratified miss injection is
+    expected to remove, `floor(E)` plus one more with probability `frac(E)`, so the mean is exactly E.
+    Otherwise (rule absent): a draw from the dev detector's own per-image counts (SPEC §8.2 as written).
+    """
+    if cfg.get("fp_count_rule") == "expected_miss":
+        e = expected_misses(cfg, scene, labels)
+        return int(e) + (rng.random() < e - int(e))
+    return rng.choice(cfg["fp_counts"][scene]) if cfg["fp_counts"][scene] else 0
+
+
 def _iou(a, b) -> float:
     return float(iou_matrix([a], [b])[0, 0])
 
@@ -53,7 +72,7 @@ def inject(kind: str, image_id: str, labels: list[tuple[int, int, int, int]], sc
                 keep.append(b)
         out.boxes = keep
     elif kind == "fp":
-        n = rng.choice(cfg["fp_counts"][scene]) if cfg["fp_counts"][scene] else 0
+        n = fp_count(cfg, scene, labels, rng)
         wh, xy = cfg["fp_wh"][scene], cfg["fp_xy"][scene]
         for _ in range(n):
             for _try in range(max_redraws):
