@@ -17,6 +17,8 @@ from sarqa.tools.base import ToolContext
 from sarqa.tools.session import BudgetExceeded, ToolSession
 
 FIRST_ACTION = "Interpretation recorded. Now choose your first action."
+ERROR_NOTE = ("\n(This call returned an error and did not run. Read the message and change the call "
+              "before you try again; sending it unchanged gives the same error.)")
 
 
 def run_stepwise(question: dict, tool_ctx: ToolContext, llm, *, repeat: int = 0,
@@ -62,7 +64,8 @@ def run_stepwise(question: dict, tool_ctx: ToolContext, llm, *, repeat: int = 0,
             entry["tool_output"] = render(call.output)
             messages += [{"role": "assistant", "content": a.reply.content},
                          {"role": "user", "content": f"Result of {call.call_id} ({call.tool}):\n"
-                                                     f"{entry['tool_output']}"}]
+                                                     f"{entry['tool_output']}"
+                                                     f"{ERROR_NOTE if 'error' in call.output else ''}"}]
     except C.AgentAbort as e:
         abort = e
     return C.finish(rec, question, meter, session, final, abort)
