@@ -15,11 +15,17 @@ import subprocess
 from pathlib import Path
 
 FROZEN_PATHS = ["src/sarqa", "configs", "pyproject.toml", "PROTOCOL.md", ":(exclude)src/sarqa/analysis"]
-REQUIRED_HASH_FILES = [
-    "splits/scenes.json", "splits/splits.json", "outputs/detector/weights.pt",
-    "data/detections/test.json", "data/questions/test.json",
-    *[f"data/{d}/test_{k}.json" for d in ("injected", "corrected") for k in ("miss", "fp", "loc")],
-]
+
+
+def required_files(split: str = "test") -> list[str]:
+    """Files whose SHA-256 must be in PROTOCOL.md before a run of `split` (dev = the rehearsal set)."""
+    if split not in ("dev", "test"):
+        raise ValueError("split must be dev or test")
+    return ["splits/scenes.json", "splits/splits.json", "outputs/detector/weights.pt",
+            f"data/detections/{split}.json", f"data/questions/{split}.json",
+            *[f"data/{d}/{split}_{k}.json" for d in ("injected", "corrected") for k in ("miss", "fp", "loc")]]
+
+
 ROW = re.compile(r"`([^`\s]+)`[^\n]*?`([0-9a-f]{64})`")
 
 
@@ -60,7 +66,7 @@ def check_freeze(root: str | Path, required: list[str] | None = None) -> list[st
     if not protocol.exists():
         return problems + ["PROTOCOL.md is missing"]
     hashes = protocol_hashes(protocol)
-    for rel in required if required is not None else REQUIRED_HASH_FILES:
+    for rel in required if required is not None else required_files('test'):
         if rel not in hashes:
             problems.append(f"PROTOCOL.md has no hash for {rel}")
             continue

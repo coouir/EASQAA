@@ -31,6 +31,8 @@ def build_parser() -> argparse.ArgumentParser:
     rev = qs.add_parser("review", help="write docs/dev_questions.md and outputs/gold_check.csv")
     rev.add_argument("--split", default="dev")
     rev.add_argument("--questions", default=None)
+    rev.add_argument("--sample", type=int, default=None,
+                     help="gold-check sample size (test default 40, stratified by level and template)")
     eng = qs.add_parser("english", help="write the English version of a question file")
     eng.add_argument("--split", default="dev")
     eng.add_argument("--questions", default=None)
@@ -55,18 +57,47 @@ def build_parser() -> argparse.ArgumentParser:
     cls.add_argument("--runs", default="outputs/runs/")
     cls.add_argument("--split", default="dev")
     cls.add_argument("--questions", default=None)
+    frz = sub.add_parser("freeze", help="freeze procedure helpers (M5)").add_subparsers(dest="freeze_command")
+    fh = frz.add_parser("hashes", help="SHA-256 rows of PROTOCOL.md for the files the guard requires")
+    fh.add_argument("--split", default="test", choices=["dev", "test"])
+    fh.add_argument("--write", action="store_true", help="write the rows into PROTOCOL.md (else only print)")
+    fc = frz.add_parser("check", help="run the freeze guard for a split without running anything")
+    fc.add_argument("--split", default="test", choices=["dev", "test"])
     inj = sub.add_parser("inject", help="error injection / correction").add_subparsers(
         dest="inject_command")
     inj.add_parser("calibrate", help="measure dev detector errors, write configs/injection.yaml")
     bld = inj.add_parser("build", help="write injected/corrected boxes and reference answers")
     bld.add_argument("--split", default="dev")
     bld.add_argument("--questions", default=None)
+    bld.add_argument("--allow-test", action="store_true",
+                     help="freeze time only (SPEC §14 M5): builds the test boxes once and never overwrites them")
     det = sub.add_parser("detector", help="detector training and inference").add_subparsers(
         dest="detector_command")
     for name in ("train", "infer"):
         det.add_parser(name, help=f"{name} (extra args are forwarded)").add_argument(
             "rest", nargs=argparse.REMAINDER)
     return parser
+
+
+def _freeze_main(args) -> int:
+    from sarqa.config import REPO_ROOT
+    from sarqa.run import freeze_tools as F
+
+    if args.freeze_command == "check":
+        problems = F.freeze_check(REPO_ROOT, args.split)
+        print("\n".join(problems) if problems else f"freeze guard passes for split {args.split}")
+        return 1 if problems else 0
+    rows, missing = F.hash_rows(REPO_ROOT, args.split)
+    for rel, digest in rows.items():
+        print(F.format_row(rel, digest, F.STATUS[args.split]))
+    if missing:
+        print("missing files (no row): " + ", ".join(missing))
+    if args.write:
+        protocol = REPO_ROOT / "PROTOCOL.md"
+        protocol.write_text(F.update_protocol(protocol.read_text(encoding="utf-8"), rows, F.STATUS[args.split]),
+                            encoding="utf-8")
+        print(f"wrote {len(rows)} rows into PROTOCOL.md")
+    return 1 if missing else 0
 
 
 def _pilot_report_main(args) -> int:
@@ -130,8 +161,13 @@ def _inject_main(args) -> int:
                                               "miss_rate", "loc_rate", "dev_totals")}, indent=1))
         return 0
     if args.split == "test":
-        print("test boxes are built once, at freeze time (SPEC §14 M5), by the freeze procedure.")
-        return 2
+        if not args.allow_test:
+            print("test boxes are built once, at freeze time (SPEC §14 M5). Pass --allow-test only then.")
+            return 2
+        existing = [str(p) for k in ("miss", "fp", "loc") for p in B.file_paths("test", k).values() if p.exists()]
+        if existing:
+            print("refusing: test box files exist (built once, never overwritten): " + ", ".join(existing))
+            return 2
     from sarqa.questions import generate as G
     from sarqa.tools import default_context
 
@@ -163,6 +199,10 @@ def _questions_main(args) -> int:
             print("refusing to generate test questions: they are generated once, at freeze time "
                   "(SPEC §0-4, §14 M5). Pass --allow-test only then.")
             return 2
+        if args.split == "test" and path.exists():
+            print(f"refusing: {path} exists. Test questions are generated once (SPEC §0-4); redoing them "
+                  f"means redoing the whole experiment, so delete the file by hand only after that decision.")
+            return 2
         qs = G.generate(args.split, ctx, detected_provider=detected_provider(args.split))
         problems = validate(qs, args.split, ctx)
         if problems:
@@ -185,8 +225,18 @@ def _questions_main(args) -> int:
         problems = validate(qs, args.split, ctx)
         print("\n".join(problems) if problems else f"{len(qs)} questions OK")
         return 1 if problems else 0
+    if args.split == "test":
+        n = args.sample or 40
+        picked = R.select_gold_check(qs, n)
+        R.write_review_md(qs, repo_path("outputs/test_review/test_questions.md"), "test 문항 검토용 표 (git 밖)")
+        R.write_gold_check(picked, ctx, repo_path("outputs/gold_check_test.csv"),
+                           repo_path("outputs/gold_check_test"))
+        print(f"wrote outputs/test_review/test_questions.md and outputs/gold_check_test.csv ({len(picked)} of "
+              f"{len(qs)} questions, images in outputs/gold_check_test/)")
+        return 0
+    picked = R.select_gold_check(qs, args.sample) if args.sample else qs
     R.write_review_md(qs, repo_path("docs/dev_questions.md"), "dev 문항 검토용 표")
-    R.write_gold_check(qs, ctx, repo_path("outputs/gold_check.csv"))
+    R.write_gold_check(picked, ctx, repo_path("outputs/gold_check.csv"))
     print("wrote docs/dev_questions.md and outputs/gold_check.csv")
     return 0
 
@@ -207,6 +257,8 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({k: v for k, v in rep.items() if k != "dhash_aux"}, indent=1))
         if "dhash_aux" in rep:
             print("dhash cross-split pairs:", rep["dhash_aux"]["n_cross_split_pairs"])
+    if args.command == "freeze" and args.freeze_command:
+        return _freeze_main(args)
     if args.command == "pilot-report":
         return _pilot_report_main(args)
     if args.command == "classify":
