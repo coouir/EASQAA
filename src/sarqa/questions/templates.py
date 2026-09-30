@@ -481,7 +481,9 @@ QUOTAS = {
         "l3_quadrant_brightest": 18, "l3_quadrant_noisiest": 18,
         "l4_scene_branch": 16, "l4_count_branch": 18, "l4_quadrant_branch": 18,
         "l4_maxlen_branch": 20, "l4_noise_branch": 18,
-        "l5_noisy_quadrant": 9, "l5_scene_quadrant": 9,
+        # 6 / 12, not 9 / 9: under the balance rule (one branch <= 50 %, zero answers <= 20 %) 9 needs
+        # 4+ `then` questions and the test images hold too few (docs/deviations.md 2026-10-01). L5 total stays 18.
+        "l5_noisy_quadrant": 6, "l5_scene_quadrant": 12,
     },
 }
 LEVEL_TOTALS = {"dev": {"L1": 18, "L2": 22, "L3": 23, "L4": 22, "L5": 5},

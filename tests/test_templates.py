@@ -240,3 +240,10 @@ def test_english_version_changes_only_the_wording():
     assert e["lang"] == "en" and "8 or more ships" in e["text_en"]
     assert question_text(e) == e["text_en"] and question_text(q) == q["text_ko"]       # Korean stays the default
     assert "lang" not in q
+
+
+def test_l5_quota_is_6_and_12_for_test_and_unchanged_for_dev():
+    """Test generation cannot fill 9 + 9 under the balance rule (docs/deviations.md 2026-10-01)."""
+    assert (QUOTAS["test"]["l5_noisy_quadrant"], QUOTAS["test"]["l5_scene_quadrant"]) == (6, 12)
+    assert (QUOTAS["dev"]["l5_noisy_quadrant"], QUOTAS["dev"]["l5_scene_quadrant"]) == (3, 2)
+    assert QUOTAS["test"]["l5_noisy_quadrant"] + QUOTAS["test"]["l5_scene_quadrant"] == 18
