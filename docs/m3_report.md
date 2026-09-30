@@ -85,7 +85,7 @@ PR은 앞 브랜치 위에 쌓았고 **병합은 하지 않았다.** 아래 표�
 | 3 | `l2_longest_length` float(±5%) | 완료 | #70 / [PR #73](https://github.com/coouir/EASQAA/pull/73) |
 | 4 | Ollama 재시작 뒤 같은 8문항 결과 비교 | 완료, **재시작하면 결정성이 깨짐** | #71 / [PR #77](https://github.com/coouir/EASQAA/pull/77) |
 | 5 | 첫 이탈이 "해석"인 사례 목록 | 완료 (26건) | #72 / [PR #75](https://github.com/coouir/EASQAA/pull/75), `docs/interpretation_cases.md` |
-| 6 | 1~4 반영 후 파일럿 A 재실행 + 파일럿 B | 완료 | #27 / 이 문서를 담은 PR(아래), `docs/pilot_a_rerun.md`, `docs/pilot_b.md` |
+| 6 | 1~4 반영 후 파일럿 A 재실행 + 파일럿 B | 완료 | #27 / [PR #78](https://github.com/coouir/EASQAA/pull/78), `docs/pilot_a_rerun.md`, `docs/pilot_b.md` |
 
 ## 결과 요약
 
