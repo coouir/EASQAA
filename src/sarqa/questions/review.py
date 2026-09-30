@@ -43,9 +43,9 @@ def write_review_md(questions: list[dict], path: str | Path, title: str) -> None
 
 def write_bilingual_md(questions_en: list[dict], path: str | Path, title: str) -> None:
     """Korean and English wording side by side (same questions, only the wording differs)."""
-    lines = [f"# {title}", "",
-             "한국어(기본)와 영어 문구를 나란히 놓은 검토표 (자동 생성: `sarqa questions english`). "
-             "문항·영상·정답은 같고 문구만 다르다. 사분면은 영문 이름을 그대로 쓴다.", ""]
+    intro = ("한국어(기본)와 영어 문구를 나란히 놓은 검토표 (자동 생성: `sarqa questions english`). "
+             "문항·영상·정답은 같고 문구만 다르다. 사분면은 영문 이름을 그대로 쓴다.")
+    lines = [f"# {title}", "", intro, ""]
     for level in ("L1", "L2", "L3", "L4", "L5"):
         rows = [q for q in questions_en if q["level"] == level]
         if not rows:
