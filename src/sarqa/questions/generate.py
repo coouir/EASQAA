@@ -218,3 +218,15 @@ def summary(questions: list[dict]) -> dict:
 
 def level_totals(split: str) -> dict:
     return LEVEL_TOTALS[split]
+
+
+def english_version(questions: list[dict]) -> list[dict]:
+    """The same questions with the English wording: `text_en` is added and `lang` is set to `en`, so the
+    agents show the English text. Images, slots, programs and gold answers are copied unchanged."""
+    out = []
+    for q in questions:
+        e = json.loads(json.dumps(q))
+        e["text_en"] = TEMPLATES[q["template"]].text_english(q["slots"])
+        e["lang"] = "en"
+        out.append(e)
+    return out

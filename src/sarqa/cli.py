@@ -31,6 +31,10 @@ def build_parser() -> argparse.ArgumentParser:
     rev = qs.add_parser("review", help="write docs/dev_questions.md and outputs/gold_check.csv")
     rev.add_argument("--split", default="dev")
     rev.add_argument("--questions", default=None)
+    eng = qs.add_parser("english", help="write the English version of a question file")
+    eng.add_argument("--split", default="dev")
+    eng.add_argument("--questions", default=None)
+    eng.add_argument("--out", default=None)
     val = qs.add_parser("validate", help="validate a question file")
     val.add_argument("--split", default="dev")
     val.add_argument("--questions", default=None)
@@ -169,6 +173,14 @@ def _questions_main(args) -> int:
         print(f"wrote {path}")
         return 0
     qs = G.read_questions(path)
+    if args.questions_command == "english":
+        out = repo_path(args.out or f"data/questions/{args.split}_en.json")
+        english = G.english_version(qs)
+        G.write_questions(english, out)
+        if args.split == "dev":
+            R.write_bilingual_md(english, repo_path("docs/dev_questions_en.md"), "dev 문항 한국어·영어 문구 대조표")
+        print(f"wrote {out} ({len(qs)} questions, English wording; everything else identical)")
+        return 0
     if args.questions_command == "validate":
         problems = validate(qs, args.split, ctx)
         print("\n".join(problems) if problems else f"{len(qs)} questions OK")

@@ -199,3 +199,13 @@ def test_schemas_are_json_serialisable_and_list_all_tools():
     tools = schema["properties"]["action"]["anyOf"][0]["properties"]["tool"]["enum"]
     assert tools == ["calc", "detect_ships", "get_metadata", "image_stats", "spatial_query"]
     assert pytest.approx(0) == 0
+
+
+def test_question_language_defaults_to_korean_and_english_only_on_request():
+    en = {**QUESTION, "lang": "en", "text_en": "What is the longest ship in px?"}
+    llm_ko, llm_en = FakeLLM(HAPPY), FakeLLM([INTERP])
+    rec_ko = run_agent("stepwise", QUESTION, mini_context(), llm_ko)
+    run_agent("stepwise", en, mini_context(), llm_en)
+    assert "가장 긴 선박" in llm_ko.calls[0]["messages"][1]["content"] and rec_ko["lang"] == "ko"
+    assert "What is the longest ship in px?" in llm_en.calls[0]["messages"][1]["content"]
+    assert "가장" not in llm_en.calls[0]["messages"][1]["content"] + llm_en.calls[0]["messages"][0]["content"]

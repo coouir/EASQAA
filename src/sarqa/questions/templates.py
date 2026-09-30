@@ -13,6 +13,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from sarqa.questions import slots as S
+from sarqa.questions.texts_en import TEXT_EN
 from sarqa.questions.vocab import QUADRANTS, blank_interpretation, branch_object
 
 QUAD_KO = {"top_left": "왼쪽 위", "top_right": "오른쪽 위",
@@ -85,6 +86,10 @@ class Template:
     branch_spec: Callable[[dict], dict] | None = None
     category_choices: tuple | None = None
     note: str = ""
+
+    def text_english(self, slots: dict) -> str:
+        """The English wording (same meaning as `text`); the Korean text stays the default."""
+        return TEXT_EN[self.id](slots)
 
 
 def _alts_detect_first(slots, program):

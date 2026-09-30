@@ -189,3 +189,54 @@ def test_l4_branches_that_answer_a_length_are_float_questions():
     for tid in ("l4_scene_branch", "l4_count_branch", "l4_quadrant_branch"):
         t = TEMPLATES[tid]
         assert t.answer_type == "float" and t.unit == "px" and t.interpretation(slots_of(tid))["answer_type"] == "float"
+
+
+# ---------------------------------------------------------------- English wording
+
+def _numbers(text):
+    import re
+
+    return sorted(re.findall(r"\d+(?:\.\d+)?", text))
+
+
+def test_every_template_has_an_english_text_with_the_same_numbers_as_the_korean_one():
+    from sarqa.questions.texts_en import TEXT_EN
+
+    assert set(TEXT_EN) == set(TEMPLATES)
+    for tid, t in TEMPLATES.items():
+        for over in ({}, {"region": "bottom_right"}, {"region": "full"}):
+            if over.get("region") == "full" and tid != "l1_brightness":
+                continue                                    # "full" is only a valid region for brightness
+            s = slots_of(tid) | over
+            ko, en = t.text(s), t.text_english(s)
+            assert en and "{" not in en and not any("가" <= ch <= "힣" for ch in en), (tid, en)
+            assert _numbers(ko) == _numbers(en), (tid, ko, en)
+
+
+def test_english_quadrant_questions_use_the_english_region_names():
+    for tid in ("l1_quadrant_count", "l4_quadrant_branch"):
+        assert "bottom_right" in TEMPLATES[tid].text_english(slots_of(tid) | {"region": "bottom_right"})
+    assert "bottom_right" in TEMPLATES["l1_brightness"].text_english(slots_of("l1_brightness") | {"region": "bottom_right"})
+    for tid in ("l3_quadrant_most_ships", "l3_quadrant_most_long", "l3_quadrant_brightest", "l3_quadrant_noisiest"):
+        en = TEMPLATES[tid].text_english(slots_of(tid))
+        for name in ("top_left", "top_right", "bottom_left", "bottom_right"):
+            assert name in en
+    for tid in ("l1_quadrant_count", "l3_quadrant_most_ships", "l3_empty_quadrants", "l3_quadrant_most_long",
+                "l4_quadrant_branch", "l5_noisy_quadrant", "l5_scene_quadrant"):
+        assert "by ship center" in TEMPLATES[tid].text_english(slots_of(tid)), tid
+    for tid in ("l3_quadrant_brightest", "l3_quadrant_noisiest", "l1_brightness"):
+        assert "by ship center" not in TEMPLATES[tid].text_english(slots_of(tid)), tid
+
+
+def test_english_version_changes_only_the_wording():
+    from sarqa.agents.common import question_text
+    from sarqa.questions.generate import english_version
+
+    tid = "l4_count_branch"
+    q = {"qid": "D-L4-001", "template": tid, "slots": {"threshold": 7}, "text_ko": TEMPLATES[tid].text({"threshold": 7}),
+         "program": {"x": 1}, "gold_answer": 12.0, "image_id": "a.jpg"}
+    (e,) = english_version([q])
+    assert {k: v for k, v in e.items() if k not in ("text_en", "lang")} == q
+    assert e["lang"] == "en" and "8 or more ships" in e["text_en"]
+    assert question_text(e) == e["text_en"] and question_text(q) == q["text_ko"]       # Korean stays the default
+    assert "lang" not in q
