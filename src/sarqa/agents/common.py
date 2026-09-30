@@ -52,8 +52,13 @@ def system_prompt(method: str) -> str:
     return "\n\n".join(load_prompt(n) for n in parts[method])
 
 
+def question_text(question: dict) -> str:
+    """The wording the agent sees: Korean by default, English only for a question set marked `lang: en`."""
+    return question["text_en"] if question.get("lang") == "en" else question["text_ko"]
+
+
 def question_message(question: dict, tail: str) -> str:
-    return f"image_id: {question['image_id']}\n\nQuestion: {question['text_ko']}\n\n{tail}"
+    return f"image_id: {question['image_id']}\n\nQuestion: {question_text(question)}\n\n{tail}"
 
 
 # ---------------------------------------------------------------- schemas
@@ -263,7 +268,8 @@ def decision_from_executor(entry: dict, cond: dict, step_calls: dict[str, list[s
 
 
 def base_record(question: dict, method: str, repeat: int, seed: int) -> dict:
-    return {"method": method, "qid": question["qid"], "level": question["level"], "repeat": repeat,
+    return {"method": method, "qid": question["qid"], "level": question["level"],
+            "lang": question.get("lang", "ko"), "repeat": repeat,
             "seed": seed, "status": None, "fail_kind": None, "error_detail": None,
             "answer_raw": None, "answer": None, "correct": False, "answer_format_ok": False,
             "unit_only_fix": False, "interpretation": None, "turns": [], "decisions": [],
