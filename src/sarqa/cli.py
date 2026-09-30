@@ -53,6 +53,8 @@ def build_parser() -> argparse.ArgumentParser:
     pil.add_argument("--questions", default=None)
     pil.add_argument("--title", default=None)
     pil.add_argument("--note", default="")
+    an = sub.add_parser("analyze", help="analysis of run records (forwarded to sarqa.analysis.cli)")
+    an.add_argument("rest", nargs=argparse.REMAINDER)
     cls = sub.add_parser("classify", help="classify run records (input error, first deviation)")
     cls.add_argument("--runs", default="outputs/runs/")
     cls.add_argument("--split", default="dev")
@@ -261,6 +263,10 @@ def main(argv: list[str] | None = None) -> int:
         return _freeze_main(args)
     if args.command == "pilot-report":
         return _pilot_report_main(args)
+    if args.command == "analyze":
+        from sarqa.analysis.cli import main as analysis_main
+
+        return analysis_main(args.rest)
     if args.command == "classify":
         return _classify_main(args)
     if args.command == "run":
