@@ -64,6 +64,8 @@ def test_stepwise_reference_errors_come_back_as_tool_text_and_the_run_continues(
     assert rec["status"] == "ok" and rec["correct"] and rec["tool_calls"] == 3
     assert "error" in json.loads(rec["turns"][1]["tool_output"])
     assert "error" in llm.calls[2]["messages"][-1]["content"]   # the model saw the error text
+    assert "did not run" in llm.calls[2]["messages"][-1]["content"]   # and is told not to resend it
+    assert "did not run" not in llm.calls[3]["messages"][-1]["content"]  # a good result has no such note
 
 
 def test_stepwise_budget_exceeded_stops_the_run():

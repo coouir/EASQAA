@@ -31,10 +31,24 @@ Every tool returns one JSON object. On a problem it returns `{"error": "..."}`; 
   - `add, sub, mul, div` take numbers `a`, `b`
   - `expr` takes `expr` (arithmetic on numbers and names) and `vars` (name -> number), for example `expr="d / w * 100", vars={"d": 12.5, "w": 800}`
 
+### Examples of `calc` calls (arguments only; `$c4` etc. are call ids you have made)
+
+- count the items of a list that satisfy a comparison: `{"op": "filter", "list": "$c4.long_side_px", "cmp": ">=", "threshold": 30}`; the number is in `count` of its result (`$c5.count`). `op` `count` only gives the length of a list and takes no `cmp` or `threshold`.
+- the label of the largest value: `{"op": "argmax", "list": "$c4.count", "labels": ["top_left", "top_right", "bottom_left", "bottom_right"]}`; `labels` may be any list as long as `list` (for example `ship_ids` from a `spatial_query` `count`, which is in the same order as `long_side_px` of `sizes`). The label is in `result`; give it on as `"$c5.result"`, for example as `region` or `ship_a` of a later call.
+- The interpretation values `noisiest_region` and `densest_region` are **not** tool regions. To find such a quadrant, get the value of each of the four quadrants, use `argmax` with the four quadrant names as `labels`, and pass `"$c<k>.result"` as the `region`.
+
 ## References
 
 Every tool call gets an id `c1, c2, ...` in the order you make them. An argument may be a value or a reference `$c<k>.<field>` to a field of an earlier call's output. Examples: `"$c2.long_side_px"` (a whole list), `"$c1.count"`, `"$c3.ships.0.id"` (list index). Use references instead of copying numbers or lists; the tool fills them in. A reference to a call or field that does not exist gives an error.
 **The final answer is written as a plain value, never as a reference.**
+
+## Working style
+
+- Make only the calls the question needs, and answer as soon as you have the values you need. Once the values are in your results (or in a `calc` result), write the final answer; do not keep calling tools to double-check.
+- Never repeat a call you already made with the same arguments; its result will be the same. If a call returns an error, read the message and change the call (for example the region name or the operation); do not retry it unchanged.
+- Use only the operations listed above. `spatial_query` has exactly these queries: `count`, `sizes`, `distance`, `nearest_pair`, `nearest_to`, `edge`. Maximum, minimum, argmax, filtering and counting of a list are `calc` operations.
+- Pick the tool whose output already has the field you need (for example `count`, `long_side_px`, `distance_px`, `scene`) instead of working it out from box coordinates yourself.
+- For something per quadrant, call the tool once for each quadrant (`region` set to that quadrant's name) and give the resulting list, by reference, to `calc`; regions are quadrant names, `full`, or `[x1,y1,x2,y2]` only.
 
 ## Interpretation
 
