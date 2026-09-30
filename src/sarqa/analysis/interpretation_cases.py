@@ -36,11 +36,11 @@ def cases(runs_dir: Path, questions: list[dict], conditions=(1, 2)) -> list[dict
 
 
 def render(items: list[dict], source: str) -> str:
-    lines = ["# 첫 이탈이 \"해석\"인 사례 (파일럿 A, 조건 1·2)", "",
-             f"자동 생성: `python -m sarqa.analysis.interpretation_cases` (입력: `{source}`). 어휘와 문구는 바꾸지 않았다. "
+    intro = (f"자동 생성: `python -m sarqa.analysis.interpretation_cases` (입력: `{source}`). 어휘와 문구는 바꾸지 않았다. "
              "\"다른 필드\"는 정답 풀이가 쓰는 필드(판정에 쓰임)와 쓰지 않는 필드(참고)를 나눠 적었다. "
              "해석은 항상 가장 이른 턴이라, 사례에 해석 차이가 있고 그것이 \"무해\"(호출·분기가 정답 방식으로 이뤄짐)로 "
-             "판정되지 않으면 첫 이탈이 된다.", ""]
+             "판정되지 않으면 첫 이탈이 된다.")
+    lines = ["# 첫 이탈이 \"해석\"인 사례 (파일럿 A, 조건 1·2)", "", intro, ""]
     for cond in (1, 2):
         rows = [x for x in items if x["cls"]["condition"] == cond]
         lines += [f"## 조건 {cond} ({'label' if cond == 1 else 'detected'} 입력): {len(rows)}건", ""]
@@ -48,14 +48,15 @@ def render(items: list[dict], source: str) -> str:
         for x in rows:
             for f in x["used"]:
                 by_field[f] = by_field.get(f, 0) + 1
-        lines += [f"정답 풀이가 쓰는 필드 중 다른 필드별 건수: {by_field or '-'}; "
-                  f"이 중 최종 답이 맞은 건: {sum(x['cls']['correct'] for x in rows)}", ""]
+        n_right = sum(x["cls"]["correct"] for x in rows)
+        lines += [f"정답 풀이가 쓰는 필드 중 다른 필드별 건수: {by_field or '-'}; 이 중 최종 답이 맞은 건: {n_right}", ""]
         lines += ["| qid | 템플릿 | 다른 필드(쓰임) | 다른 필드(안 쓰임) | 최종 답 | 정오 |", "|---|---|---|---|---|---|"]
         for x in rows:
             ans = x["rec"]["answer"]
+            shown = f"{_c(ans['value'])} {ans['unit']}" if ans else f"(답 없음: {x['rec']['fail_kind']})"
+            verdict = "정답" if x["cls"]["correct"] else "오답"
             lines.append(f"| {x['q']['qid']} | `{x['q']['template']}` | {', '.join(x['used']) or '-'} | "
-                         f"{', '.join(x['unused']) or '-'} | {_c(ans['value']) + ' ' + str(ans['unit']) if ans else '(답 없음: ' + str(x['rec']['fail_kind']) + ')'} | "
-                         f"{'정답' if x['cls']['correct'] else '오답'} (정답값 {_c(x['q']['gold_answer'])}) |")
+                         f"{', '.join(x['unused']) or '-'} | {shown} | {verdict} (정답값 {_c(x['q']['gold_answer'])}) |")
         lines.append("")
         for x in rows:
             q, rec = x["q"], x["rec"]
@@ -67,8 +68,9 @@ def render(items: list[dict], source: str) -> str:
                 tag = "쓰임" if f in x["used"] else "안 쓰임"
                 lines.append(f"- 다른 필드 `{f}` ({tag}): 정답 `{_c(g.get(f))}` / 에이전트 `{_c(a.get(f))}`")
             ans = rec["answer"]
-            lines += [f"- 최종 답: {(_c(ans['value']) + ' ' + str(ans['unit'])) if ans else '없음 (' + str(rec['fail_kind']) + ')'} → "
-                      f"{'정답' if x['cls']['correct'] else '오답'}, 정답값 {_c(q['gold_answer'])}, "
+            shown = f"{_c(ans['value'])} {ans['unit']}" if ans else f"없음 ({rec['fail_kind']})"
+            verdict = "정답" if x["cls"]["correct"] else "오답"
+            lines += [f"- 최종 답: {shown} → {verdict}, 정답값 {_c(q['gold_answer'])}, "
                       f"에이전트가 받은 상자로 도달 가능한 값 {_c(rec['reachable_answer'])}", ""]
     return "\n".join(lines) + "\n"
 
