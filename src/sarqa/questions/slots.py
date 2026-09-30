@@ -25,6 +25,8 @@ REL_MARGIN = 0.10          # threshold margin for measured values
 COUNT_MARGIN = 2           # |count - K| >= 2, i.e. not within +-1 of the boundary
 ARGMAX_GAP = 0.02          # relative gap between the best and the second value of a statistic
 LENGTH_CANDIDATES = tuple(range(15, 151, 5))
+LENGTH_ABS_MARGIN = 2      # px: no ship length within +-2 px of a length threshold (review 2026-09-30)
+MIN_SHIPS_PAIR = 3         # distance questions between chosen ships need 3+ label ships
 MIN_SHIPS, MAX_SHIPS = 2, 15
 
 
@@ -85,6 +87,12 @@ def clear_of(values, threshold: float) -> bool:
     return all(abs(v - threshold) > REL_MARGIN * abs(threshold) for v in values)
 
 
+def clear_length(values, threshold: float) -> bool:
+    """Length thresholds: no length within max(10 %, 2 px) of the threshold (either side)."""
+    margin = max(REL_MARGIN * abs(threshold), LENGTH_ABS_MARGIN)
+    return all(abs(v - threshold) > margin for v in values)
+
+
 def clear_count(count: int, k: int) -> bool:
     return abs(count - k) >= COUNT_MARGIN
 
@@ -105,7 +113,7 @@ def stat_argmax_clear(values: dict) -> bool:
 
 
 def threshold_choices(lengths, extra_ok=lambda t: True) -> list[int]:
-    return [t for t in LENGTH_CANDIDATES if clear_of(lengths, t) and extra_ok(t)]
+    return [t for t in LENGTH_CANDIDATES if clear_length(lengths, t) and extra_ok(t)]
 
 
 def eligible(f: ImageFacts) -> bool:
@@ -150,11 +158,18 @@ def c_ok(slots, f):
     return None
 
 
+def c_min_ships_pair(slots, f):
+    return None if f.n >= MIN_SHIPS_PAIR else f"only {f.n} label ships, need {MIN_SHIPS_PAIR}+"
+
+
 def c_unique_longest(slots, f):
-    return None if unique_extreme(f.lengths, "max") else "longest ship is tied"
+    return c_min_ships_pair(slots, f) or (
+        None if unique_extreme(f.lengths, "max") else "longest ship is tied")
 
 
 def c_unique_longest_shortest(slots, f):
+    if f.n < MIN_SHIPS_PAIR:
+        return f"only {f.n} label ships, need {MIN_SHIPS_PAIR}+"
     if not unique_extreme(f.lengths, "max"):
         return "longest ship is tied"
     return None if unique_extreme(f.lengths, "min") else "shortest ship is tied"
@@ -245,9 +260,11 @@ def s_l5_scene(rng, f):
 
 
 def c_l5_scene(slots, f):
-    if f.scene == "inshore":
-        return None if stat_argmax_clear(f.quad_noise) else "noise argmax not clear"
-    return None if unique_extreme(list(f.quad_counts.values()), "max") else "count argmax tied"
+    if not unique_extreme(list(f.quad_counts.values()), "max"):
+        return "count argmax tied"          # checked for both scenes, also when the branch does not use it
+    if f.scene == "inshore" and not stat_argmax_clear(f.quad_noise):
+        return "noise argmax not clear"
+    return None
 
 
 def rng_for(*parts) -> random.Random:

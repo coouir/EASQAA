@@ -17,7 +17,9 @@ from sarqa.questions.vocab import QUADRANTS, blank_interpretation, branch_object
 
 QUAD_KO = {"top_left": "왼쪽 위", "top_right": "오른쪽 위",
            "bottom_left": "왼쪽 아래", "bottom_right": "오른쪽 아래"}
-QUAD_CHOICES = "top_left, top_right, bottom_left, bottom_right"
+ANSWER_FORMAT = ("(왼쪽 위=top_left, 오른쪽 위=top_right, 왼쪽 아래=bottom_left, 오른쪽 아래=bottom_right "
+                 "중 하나의 영문 이름으로 답하라)")
+EDGE_KO = "상자의 한 변이라도 영상 가장자리에서 20 px 이내에 있는"
 
 
 # ---------------------------------------------------------------- program building blocks
@@ -110,14 +112,14 @@ L1_TEMPLATES = [
         S.s_l1_total, True, "ships", "int",
         alts=lambda s, p: [prog([step("s1", "spatial_query", query="count")], "$s1.count")]),
     _l1("l1_quadrant_count",
-        lambda s: f"이 영상의 {QUAD_KO[s['region']]} 사분면에 있는 선박은 몇 척인가?",
+        lambda s: f"이 영상의 {QUAD_KO[s['region']]} 사분면(선박 중심 기준)에 있는 선박은 몇 척인가?",
         lambda s: prog([step("s1", "spatial_query", query="count", region=s["region"])], "$s1.count"),
         lambda s: blank_interpretation(target="ship_count", region=s["region"], unit="ships",
                                        answer_type="int"),
         S.s_l1_quadrant, True, "ships", "int",
         alts=lambda s, p: [prog([step("s1", "detect_ships", region=s["region"])], "$s1.count")]),
     _l1("l1_edge_count",
-        lambda s: "이 영상에서 상자의 한 변이라도 영상 가장자리에서 20 px 이내에 있는 선박은 몇 척인가?",
+        lambda s: f"이 영상에서 {EDGE_KO} 선박은 몇 척인가?",
         lambda s: prog([step("s1", "spatial_query", query="edge")], "$s1.count"),
         lambda s: blank_interpretation(target="ship_count", region="edge", unit="ships",
                                        answer_type="int"),
@@ -164,7 +166,7 @@ L2_TEMPLATES = [
                              vars={"d": "$s2.distance_px", "w": "$s1.width"})], "$s3.result"),
         lambda s: blank_interpretation(target="nearest_distance_ratio", unit="percent",
                                        answer_type="float"),
-        "percent", "float",
+        "percent", "float", check=S.c_min_ships_pair,
         alts=lambda s, p: [prog([step("s1", "spatial_query", query="nearest_pair"),
                                  step("s2", "get_metadata"),
                                  step("s3", "calc", op="expr", expr="d / w * 100",
@@ -219,22 +221,22 @@ def _quadrant_loop(query_step: dict, extra: list | None = None) -> list:
 
 L3_TEMPLATES = [
     _l3("l3_quadrant_most_ships",
-        lambda s: f"네 사분면 중 선박이 가장 많은 사분면은 어디인가? ({QUAD_CHOICES} 중 하나로 답하라)",
+        lambda s: f"네 사분면 중 선박이 가장 많은 사분면(선박 중심 기준)은 어디인가? {ANSWER_FORMAT}",
         lambda s: prog(_quadrant_loop(step("s2", "spatial_query", query="count", region="$r")) + [
             step("s3", "calc", op="argmax", list="$s2.count", labels=list(QUADRANTS))], "$s3.result"),
         lambda s: blank_interpretation(target="region_argmax", unit="none", answer_type="category"),
         "none", "category", True, check=S.c_quad_count_argmax, choices=QUADRANTS,
         alts=lambda s, p: [swap_count_for_detect(p), with_detect_first(p)]),
     _l3("l3_empty_quadrants",
-        lambda s: "선박이 한 척도 없는 사분면은 몇 개인가?",
+        lambda s: "선박이 한 척도 없는 사분면(선박 중심 기준)은 몇 개인가?",
         lambda s: prog(_quadrant_loop(step("s2", "spatial_query", query="count", region="$r")) + [
             step("s3", "calc", op="filter", list="$s2.count", cmp="==", threshold=0)], "$s3.count"),
         lambda s: blank_interpretation(target="empty_region_count", unit="none", answer_type="int"),
         "none", "int", True,
         alts=lambda s, p: [swap_count_for_detect(p), with_detect_first(p)]),
     _l3("l3_quadrant_most_long",
-        lambda s: (f"긴 변이 {s['threshold']} px 이상인 선박이 가장 많은 사분면은 어디인가? "
-                   f"({QUAD_CHOICES} 중 하나로 답하라)"),
+        lambda s: (f"긴 변이 {s['threshold']} px 이상인 선박이 가장 많은 사분면(선박 중심 기준)은 어디인가? "
+                   f"{ANSWER_FORMAT}"),
         lambda s: prog(_quadrant_loop(
             step("s2", "spatial_query", query="sizes", region="$r"),
             [step("s3", "calc", op="filter", list="$s2.long_side_px", cmp=">=",
@@ -246,7 +248,7 @@ L3_TEMPLATES = [
         "none", "category", True, check=S.c_l3_long_count, sample=S.s_l3_long_count,
         choices=QUADRANTS),
     _l3("l3_quadrant_brightest",
-        lambda s: f"네 사분면 중 평균 밝기가 가장 높은 사분면은 어디인가? ({QUAD_CHOICES} 중 하나로 답하라)",
+        lambda s: f"네 사분면 중 평균 밝기가 가장 높은 사분면은 어디인가? {ANSWER_FORMAT}",
         lambda s: prog(_quadrant_loop(step("s2", "image_stats", region="$r")) + [
             step("s3", "calc", op="argmax", list="$s2.mean_brightness", labels=list(QUADRANTS))],
             "$s3.result"),
@@ -254,8 +256,7 @@ L3_TEMPLATES = [
         "none", "category", False, check=S.c_stat_argmax("brightness"), choices=QUADRANTS,
         alts=lambda s, p: []),
     _l3("l3_quadrant_noisiest",
-        lambda s: (f"네 사분면 중 배경 잡음 수치가 가장 큰 사분면은 어디인가? "
-                   f"({QUAD_CHOICES} 중 하나로 답하라)"),
+        lambda s: f"네 사분면 중 배경 잡음 수치가 가장 큰 사분면은 어디인가? {ANSWER_FORMAT}",
         lambda s: prog(_quadrant_loop(step("s2", "image_stats", region="$r")) + [
             step("s3", "calc", op="argmax", list="$s2.background_noise", labels=list(QUADRANTS))],
             "$s3.result"),
@@ -290,7 +291,7 @@ def _l4_scene_program(s):
 def _l4_count_program(s):
     then, other = _nearest_or_max_branch("")
     return prog([step("s1", "spatial_query", query="count"),
-                 {"id": "s2", "op": "if", "cond": {"lhs": "$s1.count", "cmp": ">", "rhs": s["threshold"]},
+                 {"id": "s2", "op": "if", "cond": {"lhs": "$s1.count", "cmp": ">=", "rhs": s["threshold"] + 1},
                   "then": then, "else": other}],
                 {"then": "$s3.distance_px", "else": "$s5.result"})
 
@@ -336,17 +337,17 @@ L4_TEMPLATES = [
         lambda s: {"on": "scene", "cmp": "==", "threshold": "inshore", "region": "full",
                    "then_label": "inshore", "else_label": "offshore"}),
     _l4("l4_count_branch",
-        lambda s: (f"이 영상의 선박이 {s['threshold']}척을 초과하면 가장 가까운 두 선박의 중심 사이 거리(px)를, "
+        lambda s: (f"이 영상의 선박이 {s['threshold'] + 1}척 이상이면 가장 가까운 두 선박의 중심 사이 거리(px)를, "
                    f"그렇지 않으면 가장 긴 선박의 긴 변(px)을 답하라."),
         _l4_count_program,
         lambda s: blank_interpretation(
             target="branch", unit="px", answer_type="float",
-            branch=branch_object("ship_count", ">", s["threshold"], "nearest_distance", "max_length")),
+            branch=branch_object("ship_count", ">=", s["threshold"] + 1, "nearest_distance", "max_length")),
         "px", "float", S.s_l4_count,
-        lambda s: {"on": "ship_count", "cmp": ">", "threshold": s["threshold"], "region": "full",
+        lambda s: {"on": "ship_count", "cmp": ">=", "threshold": s["threshold"] + 1, "region": "full",
                    "then_label": "then", "else_label": "else"}),
     _l4("l4_quadrant_branch",
-        lambda s: (f"{QUAD_KO[s['region']]} 사분면의 선박이 {s['threshold']}척 이상이면 그 사분면에서 "
+        lambda s: (f"{QUAD_KO[s['region']]} 사분면(선박 중심 기준)의 선박이 {s['threshold']}척 이상이면 그 사분면에서 "
                    f"가장 긴 선박의 긴 변(px)을, 아니면 영상 전체에서 가장 가까운 두 선박의 중심 사이 거리(px)를 "
                    f"답하라."),
         _l4_quadrant_program,
@@ -371,7 +372,7 @@ L4_TEMPLATES = [
                    "then_label": "then", "else_label": "else"}),
     _l4("l4_noise_branch",
         lambda s: (f"이 영상 전체의 배경 잡음 수치가 {s['threshold']}보다 크면 전체 선박 수를, "
-                   f"그렇지 않으면 가장자리 20 px 이내에 있는 선박 수를 답하라."),
+                   f"그렇지 않으면 {EDGE_KO} 선박 수를 답하라."),
         _l4_noise_program,
         lambda s: blank_interpretation(
             target="branch", unit="ships", answer_type="int",
@@ -419,9 +420,9 @@ def _l5_scene_program(s):
 L5_TEMPLATES = [
     Template(
         "l5_noisy_quadrant", "L5", "int", "ships", True, True,
-        lambda s: (f"배경 잡음 수치가 가장 큰 사분면을 찾아라. 그 사분면의 선박이 {s['count_threshold']}척 "
-                   f"이상이면 그 사분면에서 긴 변이 {s['threshold']} px 이상인 선박의 수를, 아니면 "
-                   f"그 사분면의 선박 수를 답하라."),
+        lambda s: (f"배경 잡음 수치가 가장 큰 사분면을 찾아라. 그 사분면(선박 중심 기준)의 선박이 "
+                   f"{s['count_threshold']}척 이상이면 그 사분면에서 긴 변이 {s['threshold']} px 이상인 선박의 수를, "
+                   f"아니면 그 사분면의 선박 수를 답하라."),
         _l5_noisy_program,
         lambda s: blank_interpretation(
             target="branch", unit="ships", region="noisiest_region", answer_type="int",
@@ -434,7 +435,7 @@ L5_TEMPLATES = [
     Template(
         "l5_scene_quadrant", "L5", "int", "ships", True, True,
         lambda s: (f"이 영상이 연안(inshore) 장면이면 배경 잡음 수치가 가장 큰 사분면에서, 외해(offshore) "
-                   f"장면이면 선박이 가장 많은 사분면에서 긴 변이 {s['threshold']} px 이상인 선박은 "
+                   f"장면이면 선박이 가장 많은 사분면(선박 중심 기준)에서 긴 변이 {s['threshold']} px 이상인 선박은 "
                    f"몇 척인가?"),
         _l5_scene_program,
         lambda s: blank_interpretation(
