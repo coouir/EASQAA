@@ -70,8 +70,9 @@ def render(items: list[dict], source: str) -> str:
             ans = rec["answer"]
             shown = f"{_c(ans['value'])} {ans['unit']}" if ans else f"없음 ({rec['fail_kind']})"
             verdict = "정답" if x["cls"]["correct"] else "오답"
-            lines += [f"- 최종 답: {shown} → {verdict}, 정답값 {_c(q['gold_answer'])}, "
-                      f"에이전트가 받은 상자로 도달 가능한 값 {_c(rec['reachable_answer'])}", ""]
+            tail = (f"- 최종 답: {shown} → {verdict}, 정답값 {_c(q['gold_answer'])}, "
+                    f"에이전트가 받은 상자로 도달 가능한 값 {_c(rec['reachable_answer'])}")
+            lines += [tail, ""]
     return "\n".join(lines) + "\n"
 
 
