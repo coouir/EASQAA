@@ -41,6 +41,39 @@ def write_review_md(questions: list[dict], path: str | Path, title: str) -> None
     Path(path).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def select_gold_check(questions: list[dict], n: int, seed: int = 0) -> list[dict]:
+    """A deterministic sample of `n` questions for the user's gold-answer check (SPEC §6.4 step 6): the share
+    of each level follows its size (largest remainder), and inside a level the templates are visited round
+    robin so every template is checked."""
+    from sarqa.questions.slots import rng_for
+
+    if n >= len(questions):
+        return list(questions)
+    levels = sorted({q["level"] for q in questions})
+    size = {lv: sum(q["level"] == lv for q in questions) for lv in levels}
+    raw = {lv: n * size[lv] / len(questions) for lv in levels}
+    take = {lv: int(raw[lv]) for lv in levels}
+    for lv in sorted(levels, key=lambda lv: -(raw[lv] - take[lv]))[: n - sum(take.values())]:
+        take[lv] += 1
+    out = []
+    for lv in levels:
+        by_t: dict[str, list[dict]] = {}
+        for q in questions:
+            if q["level"] == lv:
+                by_t.setdefault(q["template"], []).append(q)
+        rng = rng_for(seed, "gold-check", lv)
+        for lst in by_t.values():
+            rng.shuffle(lst)
+        order = sorted(by_t)
+        picked = []
+        while len(picked) < min(take[lv], size[lv]):
+            for t in order:
+                if by_t[t] and len(picked) < take[lv]:
+                    picked.append(by_t[t].pop())
+        out += picked
+    return sorted(out, key=lambda q: q["qid"])
+
+
 def write_bilingual_md(questions_en: list[dict], path: str | Path, title: str) -> None:
     """Korean and English wording side by side (same questions, only the wording differs)."""
     intro = ("한국어(기본)와 영어 문구를 나란히 놓은 검토표 (자동 생성: `sarqa questions english`). "
