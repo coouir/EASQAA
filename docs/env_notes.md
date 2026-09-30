@@ -32,3 +32,13 @@ tmux new-session -d -s m1_train 'cd ../EASQAA-m1-run && nohup bash scripts/train
 ```
 
 재개: 같은 명령을 다시 실행하면 `outputs/detector/last.pt`(에폭 단위)에서 이어 한다. 로그: `outputs/detector/train.log`(진행), `metrics.jsonl`(에폭별 AP50), `nohup.log`(프로세스 출력·재시도).
+
+## Ollama·에이전트 실측 (M3, 2026-09-30)
+
+| 항목 | 값 |
+|---|---|
+| Ollama | 0.34.0, 모델 `qwen3:8b` (Q4_K_M), 다이제스트 `500a1f06…9b8b41`. `format`(JSON 스키마, `anyOf`·`enum` 포함)과 `think:false` 모두 동작 |
+| 기본 옵션 | `think=false`, `temperature=0.2`, `num_ctx=8192`, `num_predict=2048` (`configs/default.yaml`의 `llm:`) |
+| 시스템 프롬프트 크기 | 공통 약 1,700 토큰 (도구 설명·해석 어휘·읽기/분기 기록 규칙 포함) |
+| **시드 결정성** | dev 문항 4개 × 두 방법 × 같은 시드 3회 반복(같은 세션, 순차 실행): **8/8 조합에서 모든 턴의 LLM 출력이 완전히 같았다.** 프로세스·서버 재시작 뒤에도 같은지는 확인하지 않았다 (파일럿에서 다시 볼 것) |
+| 지연 (라벨 입력, dev 8문항 시험) | 단계별 LLM 호출 1회 약 1.5~3초. 문항당 L1 3~8초, L2 7~8초, L3 22초(9호출), L5 30초(14호출, 예산 초과). 일괄 계획은 문항당 3~9초 |
