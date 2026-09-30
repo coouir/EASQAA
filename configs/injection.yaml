@@ -186,6 +186,7 @@ loc_samples:
 - [-0.1, 0.0, 0.1823, 0.1252]
 - [0.1154, 0.0714, 0.0741, 0.0465]
 dev_totals: {miss: 129, fp: 42, loc: 63, matched: 776}
+fp_count_rule: expected_miss
 rules:
   fp_max_iou_with_label: 0.1
   loc_iou_range: [0.5, 0.75]

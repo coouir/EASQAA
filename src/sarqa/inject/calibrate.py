@@ -5,8 +5,9 @@ scenes, so rates are per stratum = ship size bin x inshore/offshore. Size bins a
 dev label boxes' longer side. Output: `configs/injection.yaml` (frozen with the code at freeze-v1).
 
   miss  per-label-box probability = dev miss rate of its stratum
-  fp    per image: count drawn from the scene's empirical per-image counts; size (w, h) and centre
-        (x, y) from the empirical false-positive boxes of the scene
+  fp    per image: as many as the miss injection is expected to remove (`fp_count_rule:
+        expected_miss`; `fp_counts` keeps the dev detector's own counts for reference); size (w, h)
+        and centre (x, y) from the empirical false-positive boxes of the scene
   loc   per matched box: probability = dev share of IoU < 0.75 among matched pairs of its stratum;
         the perturbation is a whole empirical tuple (dcx/w, dcy/h, log w ratio, log h ratio)
 """
@@ -120,6 +121,7 @@ def calibrate(split: str = "dev") -> dict:
         "fp_counts": fp_counts, "fp_wh": fp_wh, "fp_xy": fp_xy, "loc_samples": loc_samples,
         "dev_totals": {"miss": sum(misses.values()), "fp": sum(sum(v) for v in fp_counts.values()),
                        "loc": sum(locs.values()), "matched": sum(matched_n.values())},
+        "fp_count_rule": "expected_miss",   # not the detector's own rate: see docs/deviations.md (2026-09-30)
         "rules": {"fp_max_iou_with_label": 0.1, "loc_iou_range": [0.5, 0.75], "max_redraws": 50},
     }
 

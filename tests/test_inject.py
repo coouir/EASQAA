@@ -152,3 +152,38 @@ def test_calibration_on_dev_reproduces_the_frozen_yaml_numbers():
     assert all(0 <= v <= 1 for v in fresh["miss_rate"].values())
     with pytest.raises(ValueError):
         calibrate("test")
+
+
+# ---------------------------------------------------------------- fp count = expected misses
+
+def test_fp_count_matches_the_expected_number_of_injected_misses():
+    from sarqa.inject.inject import expected_misses
+
+    cfg = {**CFG, "fp_count_rule": "expected_miss"}
+    assert expected_misses(cfg, "inshore", LABELS) == pytest.approx(3.0)      # 6 labels x 0.5
+    assert {inject("fp", f"i{k}", LABELS, "inshore", cfg, 1).added for k in range(20)} == {3}
+    frac = {**cfg, "miss_rate": dict.fromkeys(ALL, 0.25)}                        # E = 1.5 -> 1 or 2
+    counts = [inject("fp", f"i{k}", LABELS, "inshore", frac, 1).added for k in range(400)]
+    assert set(counts) == {1, 2} and sum(counts) / 400 == pytest.approx(1.5, abs=0.12)
+    none = {**cfg, "miss_rate": dict.fromkeys(ALL, 0.0)}
+    assert inject("fp", "i", LABELS, "inshore", none, 1).added == 0
+
+
+def test_expected_miss_rule_uses_the_strata_of_the_boxes():
+    from sarqa.inject.inject import expected_misses
+
+    cfg = {**CFG, "miss_rate": {**dict.fromkeys(ALL, 0.0), "mid|inshore": 1.0, "mid|offshore": 0.5}}
+    assert expected_misses(cfg, "inshore", LABELS) == len(LABELS)              # all six are mid-size
+    assert expected_misses(cfg, "offshore", LABELS) == len(LABELS) / 2
+
+
+def test_without_the_rule_the_empirical_counts_are_used():
+    inj = inject("fp", "i", LABELS, "inshore", CFG, seed=3)
+    assert inj.added == 3                                                      # CFG["fp_counts"] = [3]
+
+
+@pytest.mark.data
+def test_frozen_yaml_uses_the_expected_miss_rule():
+    from sarqa.inject.calibrate import load_injection
+
+    assert load_injection()["fp_count_rule"] == "expected_miss"
