@@ -172,8 +172,8 @@ M4 통과 기준: L1 ≥ 80% 통과(조건 1 17/18), 실패율 < 10%는 조건 1
 | A2b | 문맥 길이 점검과 `num_ctx` 16384 | [#93](https://github.com/coouir/EASQAA/pull/93) (#85) | 완료 |
 | A3 | test 지원 명령, PROTOCOL 해시 행 도구, 리허설 스크립트, `docs/freeze_checklist.md` | [#91](https://github.com/coouir/EASQAA/pull/91) (#86) | 완료, **리허설 통과** |
 | A4 | `sarqa analyze` 진입점, 사람 검증 표본(`analysis/`) | [#92](https://github.com/coouir/EASQAA/pull/92) (#87) | 완료 |
-| A5 | dev 스모크(조건 3, 5, 7, 8, 10, 11 × 5문항) | 이 문서 PR (`docs/smoke_a5.md`) | 완료, 30회 모두 끝까지 실행 |
-| A6 | 확정 결정 기록: `docs/deviations.md`, `PROTOCOL.md` §6~§10 초안 | 이 문서 PR (#88) | 완료 |
+| A5 | dev 스모크(조건 3, 5, 7, 8, 10, 11 × 5문항) | [#94](https://github.com/coouir/EASQAA/pull/94) (`docs/smoke_a5.md`) | 완료, 30회 모두 끝까지 실행 |
+| A6 | 확정 결정 기록: `docs/deviations.md`, `PROTOCOL.md` §6~§10 초안 | [#94](https://github.com/coouir/EASQAA/pull/94) (#88) | 완료 |
 
 ## 결과 요약
 
@@ -213,11 +213,11 @@ M4 통과 기준: L1 ≥ 80% 통과(조건 1 17/18), 실패율 < 10%는 조건 1
 | 3 | [#93](https://github.com/coouir/EASQAA/pull/93) `num_ctx` 16384 | 설정 한 줄 + 문서 |
 | 4 | [#91](https://github.com/coouir/EASQAA/pull/91) 동결 준비 | `cli.py`, 리허설 |
 | 5 | [#92](https://github.com/coouir/EASQAA/pull/92) analyze | `cli.py`(#91과 자동 병합) |
-| 6 | 문서 PR (#88, 이 보고서) | 위 결정·결과를 기록. 마지막에 |
+| 6 | [#94](https://github.com/coouir/EASQAA/pull/94) 문서 (이 보고서) | 위 결정·결과를 기록. 마지막에 |
 
 각 PR은 병합 전 CI가 초록인지만 확인하세요(병합 후 저는 통합 상태를 다시 검증할 수 있습니다).
 
-**2. 닫을 이슈**: 병합되는 PR 본문의 `Closes`로 #83~#88은 자동으로 닫힌다. 이미 끝났는데 열려 있는 것은 #17~#26, #79, #81(스택 PR이 main으로 안 들어가서 안 닫힘), #27(파일럿 A·B·스모크 완료; 문서 PR이 `Closes #27`). 남길 것: #28(M5), #29(본 실행), #30(test 분류·사람 검증), #31·#32(분석), #33(README).
+**2. 닫을 이슈**: 병합되는 PR 본문의 `Closes`로 #83~#88은 자동으로 닫힌다. 이미 끝났는데 열려 있는 것은 #17~#26, #79, #81(스택 PR이 main으로 안 들어가서 안 닫힘), #27(파일럿 A·B·스모크 완료; #94가 `Closes #27`). 남길 것: #28(M5), #29(본 실행), #30(test 분류·사람 검증), #31·#32(분석), #33(README).
 
 **3. M5 진행 순서** (자세한 명령은 `docs/freeze_checklist.md`)
 
