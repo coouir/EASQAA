@@ -198,6 +198,7 @@ class Meter:
     llm_calls: int = 0
     tokens_in: int = 0
     tokens_out: int = 0
+    max_prompt_tokens: int = 0       # largest prompt_eval_count of any single LLM call of the run
     format_retries: int = 0
     t0: float = field(default_factory=time.monotonic)
 
@@ -235,6 +236,7 @@ def ask(llm, meter: Meter, seed: int, messages: list[dict], schema: dict, valida
             raise AgentAbort("timeout" if meter.remaining() <= 0 else "llm_error", str(e)) from e
         meter.llm_calls += 1
         meter.tokens_in += reply.tokens_in
+        meter.max_prompt_tokens = max(meter.max_prompt_tokens, reply.tokens_in)
         meter.tokens_out += reply.tokens_out
         tin, tout, ms = tin + reply.tokens_in, tout + reply.tokens_out, ms + reply.ms
         try:
@@ -274,7 +276,7 @@ def base_record(question: dict, method: str, repeat: int, seed: int) -> dict:
             "answer_raw": None, "answer": None, "correct": False, "answer_format_ok": False,
             "unit_only_fix": False, "interpretation": None, "turns": [], "decisions": [],
             "tool_calls": 0, "llm_calls": 0, "tokens_in": 0, "tokens_out": 0, "format_retries": 0,
-            "wall_ms": 0, "budget": question["budget"], "over_budget": False}
+            "wall_ms": 0, "prompt_tokens_max": 0, "budget": question["budget"], "over_budget": False}
 
 
 def finish(rec: dict, question: dict, meter: Meter, session, final: dict | None,
@@ -283,6 +285,7 @@ def finish(rec: dict, question: dict, meter: Meter, session, final: dict | None,
     rec["tool_calls"] = len(session.calls)
     rec["llm_calls"], rec["tokens_in"], rec["tokens_out"] = meter.llm_calls, meter.tokens_in, meter.tokens_out
     rec["format_retries"], rec["wall_ms"] = meter.format_retries, meter.wall_ms
+    rec["prompt_tokens_max"] = meter.max_prompt_tokens
     if abort is not None or final is None:
         rec["status"] = "exec_fail"
         rec["fail_kind"] = abort.kind if abort else "unknown"
