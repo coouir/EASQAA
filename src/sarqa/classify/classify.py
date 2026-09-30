@@ -15,7 +15,7 @@ from pathlib import Path
 
 from sarqa.classify import replay, stages
 from sarqa.classify.stages import STAGE_NAMES, Dev
-from sarqa.grading import grade, value_matches
+from sarqa.grading import grade, normalize_unit, value_matches
 from sarqa.run.conditions import Condition, ProviderPool
 from sarqa.run.runner import load_records
 
@@ -61,11 +61,10 @@ def find_deviations(rec: dict, question: dict, provider, ctx, reachable, exps=No
             devs.append(s6)
     extras = {"expected_program": exp.name}
     if s1 is not None:
-        # a record-only mismatch: calls and branches went the gold way and the unit/type are right
+        # a record-only mismatch: the calls and branches went the gold way
         followed = not any(d.stage in (2, 4) and not d.harmless for d in devs)
-        ans_unit_ok = not has_answer or (rec["answer"] or {}).get("unit") is not None
-        if followed and ans_unit_ok and not {"unit", "answer_type"} & set(
-                stages.interpretation_diff(rec.get("interpretation"), question["gold_interpretation"])[0]):
+        unit_ok = not has_answer or normalize_unit((rec["answer"] or {}).get("unit")) == question["unit"]
+        if followed and unit_ok:
             s1.harmless = True
             extras["interp_record_mismatch"] = True
         devs.append(s1)
@@ -101,7 +100,9 @@ def classify_run(rec: dict, question: dict, provider, ctx, exps=None) -> dict:
            "cell": cell_of(rec["correct"], in_err, ag_err), "input_cause": None,
            "first_deviation_stage": None, "first_deviation_stage_name": None,
            "first_deviation_turn": None, "deviations": [], "harmless_deviations": [],
-           "interp_record_mismatch": False, "unit_only_fix": rec.get("unit_only_fix", False)}
+           "interp_record_mismatch": False, "unit_only_fix": rec.get("unit_only_fix", False),
+           "interp_statistic_only_diff": stages.statistic_only_diff(rec.get("interpretation"),
+                                                                    question["gold_interpretation"])}
     if in_err:
         out["input_cause"] = replay.replay_input(question, provider, ctx)
     if ag_err:
@@ -161,6 +162,8 @@ def summarize(classified: list[dict]) -> dict:
         if wrong else 0,
         "input_causes": dict(Counter(c["input_cause"]["category"] for c in classified if c["input_cause"])),
         "interp_record_mismatch": sum(c["interp_record_mismatch"] for c in classified),
+        "interp_statistic_only_diff_runs": dict(Counter(
+            f for c in classified for f in c.get("interp_statistic_only_diff", []))),
         "harmless_deviation_runs": sum(bool(c["harmless_deviations"]) for c in classified),
         "fail_kinds": dict(Counter(c["fail_kind"] for c in classified if c["fail_kind"])),
     }

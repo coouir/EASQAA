@@ -131,7 +131,7 @@ def test_stage_calculation_and_calc_skipped():
 
 def test_interpretation_deviation_comes_first_by_turn_and_record_only_mismatch_is_harmless():
     wrong = blank_interpretation(target="ship_count", unit="ships", answer_type="int")
-    r = rec_for(GOOD[:2] + [answer(66)], interp=wrong)
+    r = rec_for([tool("detect_ships", image_id="m3.jpg"), answer(1)], interp=wrong)     # target wrong AND calls wrong
     c = classify(r)
     assert c["first_deviation_stage_name"] == "interpretation" and c["first_deviation_turn"] == 0
     # only an unused field differs and the run is otherwise faithful -> the later error is first
@@ -271,3 +271,54 @@ def test_summary_counts():
     s = CL.summarize(cs)
     assert s["runs"] == 2 and s["cells"] == {"correct": 1, "agent_only": 1}
     assert s["first_deviation"] == {"answer_formatting": 1} and s["unknown_share_of_agent_errors"] == 0
+
+
+# ---------------------------------------------------------------- A1: unwrap readings, unit/answer_type are statistics only
+
+def test_reading_written_as_a_one_key_object_is_unwrapped_but_other_objects_still_mismatch():
+    from sarqa.classify.stages import unwrap_value
+
+    assert unwrap_value({"count": 3}, "count") == 3 and unwrap_value({"long_side_px": 40}, "ships.0.long_side_px") == 40
+    assert unwrap_value({"count": 3, "x": 1}, "count") == {"count": 3, "x": 1}          # two keys: not unwrapped
+    assert unwrap_value({"n": 3}, "count") == {"n": 3}                                   # other key: not unwrapped
+    assert unwrap_value(3, "count") == 3 and unwrap_value([1, 2], "long_side_px") == [1, 2]
+    wrapped = tool("calc", op="max", list="$c1.long_side_px",
+                   reading=[{"from": "c1", "field": "count", "value": {"count": 3}}])
+    c = classify(rec_for([GOOD[0], wrapped, answer(7)]))       # answer 7 equals none of the values: unrelated error
+    assert "reading_mismatch" not in {d["kind"] for d in c["deviations"] + c["harmless_deviations"]}
+    other = tool("calc", op="max", list="$c1.long_side_px",
+                 reading=[{"from": "c1", "field": "count", "value": {"n": 3}}])
+    c = classify(rec_for([GOOD[0], other, answer(7)]))
+    assert "reading_mismatch" in {d["kind"] for d in c["deviations"] + c["harmless_deviations"]}
+
+
+def test_wrapped_decision_value_is_unwrapped_too():
+    dec = {"condition_from": "c1.scene", "condition_value": {"scene": "inshore"}, "threshold": "inshore",
+           "cmp": "==", "chosen": "then"}
+    steps = [tool("get_metadata", image_id="m3.jpg"), tool("detect_ships", image_id="m3.jpg", decision=dec),
+             answer(9, unit="ships")]
+    c = classify(rec_for(steps, q=BRANCH_Q, interp=BRANCH_Q["gold_interpretation"]), q=BRANCH_Q)
+    assert "decision_value_mismatch" not in {d["kind"] for d in c["deviations"] + c["harmless_deviations"]}
+
+
+def test_unit_and_answer_type_are_not_judged_but_counted():
+    off = {**GOLD_INTERP, "unit": "ships", "answer_type": "float"}                      # gold: px / int
+    c = classify(rec_for(GOOD[:2] + [answer(66)], interp=off))
+    assert c["first_deviation_stage_name"] == "answer_formatting"                        # not "interpretation"
+    assert c["interp_record_mismatch"] is False and c["interp_statistic_only_diff"] == ["unit", "answer_type"]
+    assert CL.summarize([c])["interp_statistic_only_diff_runs"] == {"unit": 1, "answer_type": 1}
+    ok = classify(rec_for(GOOD, interp=GOLD_INTERP))
+    assert ok["interp_statistic_only_diff"] == []
+
+
+def test_target_region_filters_and_branch_are_still_judged():
+    from sarqa.classify.stages import interpretation_diff
+
+    g = blank_interpretation(target="count_over_threshold", region="top_left", unit="ships",
+                             filters=[{"field": "length_px", "cmp": ">=", "threshold": 30}])
+    assert interpretation_diff({**g, "target": "ship_count"}, g)[0] == ["target"]
+    assert interpretation_diff({**g, "region": "top_right"}, g)[0] == ["region"]
+    assert interpretation_diff({**g, "filters": []}, g)[0] == ["filters"]
+    assert interpretation_diff({**g, "unit": "px", "answer_type": "float"}, g) == ([], ["unit", "answer_type"])
+    b = blank_interpretation(target="branch", branch=branch_object("scene", "==", "inshore", "ship_count", "max_length"))
+    assert interpretation_diff({**b, "branch": {**b["branch"], "threshold": "offshore"}}, b)[0] == ["branch"]
