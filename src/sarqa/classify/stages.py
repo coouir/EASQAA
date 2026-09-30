@@ -20,7 +20,11 @@ from sarqa.tools.refs import RefError, resolve_ref
 
 STAGE_NAMES = {0: "exec_fail", 1: "interpretation", 2: "tool_selection", 3: "result_reading",
                4: "planning_branch", 5: "calculation", 6: "answer_formatting"}
-USED_FIELDS_ALWAYS = ("target", "unit", "answer_type")
+# Stage 1 judges target, region, filters and the branch condition. `unit` and `answer_type` are left out
+# (SPEC §11.3 lists them; docs/deviations.md 2026-10-01): the final answer's unit is judged at stage 6, and an
+# int/float slip in the record does not change what the agent does. They are counted, never judged.
+USED_FIELDS_ALWAYS = ("target",)
+STATISTIC_ONLY_FIELDS = ("unit", "answer_type")
 # what a branch condition reads: on -> (tools that may supply it, output field)
 BRANCH_SOURCE = {"scene": (("get_metadata",), "scene"),
                  "ship_count": (("spatial_query", "detect_ships"), "count"),
@@ -242,9 +246,10 @@ def _norm_branch(b, top_region):
 
 
 def interpretation_diff(agent: dict | None, gold: dict) -> tuple[list[str], list[str]]:
-    """(differing fields the gold program uses, differing fields it does not use)."""
+    """(differing fields that are judged, differing fields that are not: unused by the gold program or
+    statistic-only `unit` / `answer_type`)."""
     if not isinstance(agent, dict):
-        return list(gold), []
+        return [f for f in gold if f not in STATISTIC_ONLY_FIELDS], []
     used, unused = [], []
     for f in ("target", "region", "filters", "branch", "unit", "answer_type"):
         a, g = agent.get(f), gold.get(f)
@@ -264,6 +269,13 @@ def interpretation_diff(agent: dict | None, gold: dict) -> tuple[list[str], list
             or (f == "filters" and bool(g)) or (f == "branch" and g is not None)
         (used if is_used else unused).append(f)
     return used, unused
+
+
+def statistic_only_diff(agent: dict | None, gold: dict) -> list[str]:
+    """`unit` / `answer_type` fields of the interpretation that differ from the gold one (counted, not judged)."""
+    if not isinstance(agent, dict):
+        return []
+    return [f for f in STATISTIC_ONLY_FIELDS if agent.get(f) != gold.get(f)]
 
 
 def stage1(rec: dict, trace: Trace, question: dict) -> Dev | None:
@@ -341,6 +353,16 @@ def _lookup(trace: Trace, call_id: str, fieldname: str):
         return False, None
 
 
+def unwrap_value(value, fieldname: str):
+    """Models often write a reading as `{"count": 3}` instead of `3`. Unwrap only a one-key object whose key is
+    the field's own name (last part of a dotted path); any other object stays as written (a real mismatch)."""
+    if isinstance(value, dict) and len(value) == 1:
+        (key, inner), = value.items()
+        if key == str(fieldname).split(".")[-1]:
+            return inner
+    return value
+
+
 def _split_from(item: dict) -> tuple[str, str]:
     src = str(item.get("from", "")).strip().lstrip("$")
     fld = str(item.get("field", "")).strip()
@@ -368,7 +390,7 @@ def stage3(trace: Trace, rec: dict, question: dict) -> list[Dev]:
         if not found:
             devs.append(Dev(3, turn, "reading_source_missing", f"{src}.{fld} not in any tool result",
                             harmless=not _value_used(trace, src, fld, item.get("value"), rec)))
-        elif not same_value(item.get("value"), actual):
+        elif not same_value(unwrap_value(item.get("value"), fld), actual):
             devs.append(Dev(3, turn, "reading_mismatch",
                             f"{src}.{fld}: wrote {item.get('value')!r}, result has {actual!r}",
                             harmless=not _value_used(trace, src, fld, item.get("value"), rec)))
@@ -383,7 +405,7 @@ def stage3(trace: Trace, rec: dict, question: dict) -> list[Dev]:
         if not found:
             devs.append(Dev(3, turn, "decision_source_missing", f"condition_from {d.get('condition_from')}"))
             continue
-        if not same_value(d.get("condition_value"), actual):
+        if not same_value(unwrap_value(d.get("condition_value"), fld), actual):
             devs.append(Dev(3, turn, "decision_value_mismatch",
                             f"wrote {d.get('condition_value')!r}, result has {actual!r}"))
             continue
