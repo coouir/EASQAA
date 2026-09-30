@@ -143,3 +143,49 @@ def test_longest_length_is_a_float_question_with_five_percent_tolerance():
     assert t.answer_type == "float" and t.interpretation({})["answer_type"] == "float"
     assert grade(62, "px", 60.0, "px", "float").correct           # 3.3 % off: a small box jitter is fine
     assert not grade(64, "px", 60.0, "px", "float").correct        # 6.7 % off
+
+
+# ---------------------------------------------------------------- dev review of 2026-09-30
+
+def _text(tid, **over):
+    return TEMPLATES[tid].text(slots_of(tid) | over)
+
+
+def test_review_texts():
+    fmt = "(왼쪽 위=top_left, 오른쪽 위=top_right, 왼쪽 아래=bottom_left, 오른쪽 아래=bottom_right 중 하나의 영문 이름으로 답하라)"
+    for tid in ("l3_quadrant_most_ships", "l3_quadrant_most_long", "l3_quadrant_brightest", "l3_quadrant_noisiest"):
+        assert _text(tid).endswith(fmt), tid
+    edge = "상자의 한 변이라도 영상 가장자리에서 20 px 이내에 있는"
+    assert edge in _text("l1_edge_count") and edge in _text("l4_noise_branch")
+    assert "선박 수를 답하라" in _text("l4_noise_branch")
+    # "(선박 중심 기준)" wherever ships are assigned to a quadrant; not for pure image statistics
+    for tid in ("l1_quadrant_count", "l3_quadrant_most_ships", "l3_empty_quadrants", "l3_quadrant_most_long",
+                "l4_quadrant_branch", "l5_noisy_quadrant", "l5_scene_quadrant"):
+        assert "사분면(선박 중심 기준)" in _text(tid), tid
+    for tid in ("l3_quadrant_brightest", "l3_quadrant_noisiest", "l1_brightness"):
+        assert "선박 중심 기준" not in _text(tid), tid
+
+
+def test_count_branch_reads_k_plus_one_or_more_and_keeps_every_answer():
+    from sarqa.program import run_program
+
+    t = TEMPLATES["l4_count_branch"]
+    s = {"threshold": 3}
+    assert "4척 이상이면" in t.text(s) and "초과" not in t.text(s)
+    it = t.interpretation(s)["branch"]
+    assert (it["cmp"], it["threshold"]) == (">=", 4) and t.branch_spec(s)["threshold"] == 4
+    prog = t.program(s)
+    old = {**prog, "steps": [dict(st) for st in prog["steps"]]}
+    old["steps"][1] = {**old["steps"][1], "cond": {"lhs": "$s1.count", "cmp": ">", "rhs": 3}}
+    for image in ("t1.jpg", "t2.jpg"):
+        a = run_program(prog, image, ctx_for().boxes, ctx=ctx_for()).answer
+        b = run_program(old, image, ctx_for().boxes, ctx=ctx_for()).answer
+        assert a == b
+    for n in range(16):                                    # the two conditions agree for every count
+        assert (n >= 3 + 1) == (n > 3)
+
+
+def test_l4_branches_that_answer_a_length_are_float_questions():
+    for tid in ("l4_scene_branch", "l4_count_branch", "l4_quadrant_branch"):
+        t = TEMPLATES[tid]
+        assert t.answer_type == "float" and t.unit == "px" and t.interpretation(slots_of(tid))["answer_type"] == "float"

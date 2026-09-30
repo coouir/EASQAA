@@ -154,3 +154,53 @@ def test_qids_are_numbered_per_level():
     out = assign_qids(qs, "dev")
     assert [q["qid"] for q in out] == ["D-L1-001", "D-L1-002", "D-L2-001"]
     assert [q["template"] for q in out][:2] == ["l1_total_count", "l1_scene"]
+
+
+# ---------------------------------------------------------------- dev review of 2026-09-30
+
+def _facts(boxes, scene="inshore"):
+    labels = BoxProvider("label", {"a.jpg": boxes})
+    ctx = ToolContext(labels, labels, {"a.jpg": scene}, lambda n: np.full((800, 800), 40, dtype=np.uint8))
+    return S.ImageFacts("a.jpg", ctx)
+
+
+def test_length_margin_is_ten_percent_or_two_pixels_whichever_is_larger():
+    assert S.clear_length([10, 40], 20) is True and S.clear_length([18], 20) is False
+    assert S.clear_length([17], 15) is False and S.clear_length([12], 15) is True   # floor of 2 px at 15
+    assert S.clear_length([17.5], 15) is True and S.clear_length([13.5], 15) is False
+    assert S.clear_length([100], 100) is False and S.clear_length([110], 100) is False and S.clear_length([111], 100)
+    rng = S.rng_for(1)
+    f = _facts([(0, 0, 17, 10), (100, 100, 160, 130), (200, 200, 300, 240)])       # lengths 17, 60, 100
+    for _ in range(50):
+        for name in ("s_l2_count_over", "s_l3_long_count", "s_l4_maxlen"):
+            slots = getattr(S, name)(rng, f)
+            assert slots is None or all(abs(v - slots["threshold"]) > max(2, 0.1 * slots["threshold"])
+                                        for v in f.lengths)
+
+
+def test_three_ship_minimum_for_the_distance_templates():
+    from sarqa.questions.templates import TEMPLATES
+
+    two = _facts([(0, 0, 30, 20), (300, 300, 380, 320)])
+    three = _facts([(0, 0, 30, 20), (300, 300, 380, 320), (600, 100, 640, 130)])
+    for tid in ("l2_nearest_ratio", "l2_longest_neighbor", "l2_longest_shortest_distance"):
+        t = TEMPLATES[tid]
+        assert t.check({}, two) is not None and "need 3" in t.check({}, two)
+        assert t.check({}, three) is None or "tied" in t.check({}, three)
+    assert TEMPLATES["l2_nearest_ratio"].check({}, three) is None
+
+
+def test_tie_rules_exist_for_every_template_the_review_named():
+    from sarqa.questions.templates import TEMPLATES
+
+    tied_lengths = _facts([(0, 0, 50, 10), (100, 0, 150, 10), (300, 300, 340, 320)])      # two longest = 50
+    assert "tied" in TEMPLATES["l2_longest_neighbor"].check({}, tied_lengths)
+    assert "tied" in TEMPLATES["l2_longest_shortest_distance"].check({}, tied_lengths)
+    tied_short = _facts([(0, 0, 90, 10), (100, 0, 150, 10), (300, 300, 350, 320)])         # two shortest = 50
+    assert "shortest" in TEMPLATES["l2_longest_shortest_distance"].check({}, tied_short)
+    two_two = _facts([(10, 10, 40, 30), (50, 50, 90, 70), (500, 500, 540, 520), (600, 600, 640, 620)])
+    assert TEMPLATES["l3_quadrant_most_ships"].check({}, two_two) == "count argmax tied"
+    assert "tied" in TEMPLATES["l3_quadrant_most_long"].check({"threshold": 25}, two_two)
+    for scene in ("inshore", "offshore"):                         # l5_scene: ship-count tie counts in both scenes
+        assert TEMPLATES["l5_scene_quadrant"].check({"threshold": 35}, _facts(
+            [(10, 10, 40, 30), (50, 50, 90, 70), (500, 500, 540, 520), (600, 600, 640, 620)], scene)) == "count argmax tied"
