@@ -75,7 +75,7 @@
 ## 7. 확정된 결정 (사용자, 2026-10-01; 근거는 `docs/deviations.md`)
 
 1. **조건 2(탐지 입력, 단계별)의 실행 실패율 10.0%를 받아들인다.** dev만 보고 프롬프트를 더 조정하지 않는다(과적합 위험).
-2. **L5는 유지한다**(test 18문항, 사례 분석용).
+2. **L5는 유지한다**(test 18문항, 사례 분석용). 18문항은 `l5_noisy_quadrant` 6 + `l5_scene_quadrant` 12로 나눈다(처음 계획 9 + 9는 분기 균형 규칙 아래에서 test 영상의 `then` 갈래 후보가 부족해 생성이 실패했다, `docs/deviations.md` 2026-10-01).
 3. **예산 공식 `max(2g, g+3)`을 유지한다**(`max(2g, g+5)`는 정답이 바뀐 실행 1건뿐, `docs/budget_analysis.md`).
 4. **에이전트 프롬프트는 위 4개 파일(현재 main)로 확정한다.**
 5. **질문 언어는 한국어로 확정한다**: 시스템 프롬프트·도구 설명은 영어, 질문만 한국어. 영어판(`text_en`)은 dev 비교 기록(`docs/language_comparison_dev.md`)으로만 둔다. 언어 비교 dev 결과는 한국어 75/90, 영어 76/90으로 구별되지 않았다.
@@ -106,4 +106,4 @@
 
 ## 10. 이후 채울 항목 (M5)
 
-test 문항 수·유형별 수·`box_dependent` 수, test 주입 요약(층별 실제 주입 수와 dev 탐지 오류 요약을 나란히), 해시 행 11개(`sarqa freeze hashes --split test --write`), 프롬프트·설정 해시 재확인, 논문 한계 문장(오탐 주입 규칙, 조건 6의 예산 초과, 재시작 시 재현성 없음). 절차는 `docs/freeze_checklist.md`.
+test 문항 수(360 = L1 72, L2 90, L3 90, L4 90, L5 18; L5는 `l5_noisy_quadrant` 6 + `l5_scene_quadrant` 12)·`box_dependent` 수, test 주입 요약(층별 실제 주입 수와 dev 탐지 오류 요약을 나란히), 해시 행 11개(`sarqa freeze hashes --split test --write`), 프롬프트·설정 해시 재확인, 논문 한계 문장(오탐 주입 규칙, 조건 6의 예산 초과, 재시작 시 재현성 없음). 절차는 `docs/freeze_checklist.md`.
