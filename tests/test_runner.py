@@ -252,3 +252,15 @@ def test_run_refuses_the_test_split_when_the_guard_fails(tmp_path, monkeypatch):
         RN.run([1], "test", make_questions(1), tmp_path, FakeLLM([]), agent=lambda *a, **k: called.append(1),
                log=lambda *_: None)
     assert not called and not list(tmp_path.glob("*.jsonl"))
+
+
+def test_pilot_b_subset_is_thirty_deterministic_questions_with_the_level_mix():
+    from sarqa.run.pilot import pilot_b_subset
+
+    qs = [{**q, "qid": f"D-{lv}-{i:03d}", "level": lv, "box_dependent": i % 5 != 0}
+          for lv in ("L1", "L2", "L3", "L4", "L5") for i, q in enumerate([make_questions(1)[0]] * 25, 1)]
+    a, b = pilot_b_subset(qs), pilot_b_subset(qs)
+    assert a == b and len(a) == 30
+    from collections import Counter
+    assert Counter(q["level"] for q in a) == {"L1": 6, "L2": 7, "L3": 8, "L4": 7, "L5": 2}
+    assert all(q["box_dependent"] for q in a)                 # enough box-dependent ones exist in every level
