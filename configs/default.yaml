@@ -41,4 +41,5 @@ llm:
   temperature: 0.2
   num_ctx: 8192
   num_predict: 2048        # per LLM call; long plans and interpretations fit well below this
+  keep_alive: -1           # keep the model loaded (an unload/reload between runs changes cache state)
   wall_limit_s: 300        # per run (SPEC §7.1)

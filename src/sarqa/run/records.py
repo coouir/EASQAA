@@ -15,7 +15,7 @@ REQUIRED = ("run_id", "condition", "method", "input", "qid", "level", "repeat", 
             "fail_kind", "error_detail", "answer_raw", "answer", "correct", "answer_format_ok",
             "unit_only_fix", "reachable_answer", "interpretation", "turns", "decisions", "tool_calls",
             "llm_calls", "tokens_in", "tokens_out", "wall_ms", "boxes_hash", "budget", "over_budget",
-            "meta")
+            "meta", "run_index", "started_at", "server", "prompt_tokens_max")
 META_KEYS = ("git", "model_digest", "prompt_hashes", "config_hash", "data_hash", "ollama_version")
 
 
@@ -107,4 +107,5 @@ def failure_record(question: dict, cond, seed: int, detail: str, meta: dict) -> 
             "answer": None, "correct": False, "answer_format_ok": False, "unit_only_fix": False,
             "reachable_answer": None, "interpretation": None, "turns": [], "decisions": [],
             "tool_calls": 0, "llm_calls": 0, "tokens_in": 0, "tokens_out": 0, "wall_ms": 0,
-            "boxes_hash": None, "budget": question["budget"], "over_budget": False, "meta": meta}
+            "boxes_hash": None, "budget": question["budget"], "over_budget": False, "meta": meta,
+            "prompt_tokens_max": 0}

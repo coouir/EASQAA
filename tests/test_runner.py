@@ -80,7 +80,10 @@ def test_plan_is_priority_ordered_question_major_and_deterministic():
     assert conds.index(3) > max(i for i, c in enumerate(conds) if c in (1, 2, 6, 7, 8, 9, 10, 11))
     assert min(i for i, c in enumerate(conds) if c in (4, 5)) > conds.index(3)
     first_block = p1[:8]
-    assert len({q["qid"] for q, _ in first_block}) == 1 and [c.id for _, c in first_block] == [1, 2, 6, 7, 8, 9, 10, 11]
+    assert len({q["qid"] for q, _ in first_block}) == 1 and sorted(c.id for _, c in first_block) == [1, 2, 6, 7, 8, 9, 10, 11]
+    orders = {tuple(c.id for _, c in p1[i * 8:(i + 1) * 8]) for i in range(5)}
+    assert len(orders) > 1                                       # the condition order differs between questions
+    assert {tuple(sorted(o)) for o in orders} == {(1, 2, 6, 7, 8, 9, 10, 11)}
     assert [q["qid"] for q, _ in RN.plan(qs, [1], 1)] != [q["qid"] for q, _ in RN.plan(qs, [1], 2)] \
         or len(qs) < 3
 
@@ -169,7 +172,7 @@ def test_summary_numbers():
 def test_validate_record_flags_bad_records():
     good = fake_agent("stepwise", make_questions(1)[0], None, None)
     good.update(run_id="x", condition=1, input="label", reachable_answer=3, boxes_hash="h",
-                meta={k: None for k in R.META_KEYS})
+                meta={k: None for k in R.META_KEYS}, run_index=0, started_at="2026-10-01T00:00:00Z", server=None)
     assert R.validate_record(good) == []
     assert R.validate_record({**good, "status": "weird"})
     assert R.validate_record({**good, "status": "exec_fail", "fail_kind": "nope"})
@@ -264,3 +267,143 @@ def test_pilot_b_subset_is_thirty_deterministic_questions_with_the_level_mix():
     from collections import Counter
     assert Counter(q["level"] for q in a) == {"L1": 6, "L2": 7, "L3": 8, "L4": 7, "L5": 2}
     assert all(q["box_dependent"] for q in a)                 # enough box-dependent ones exist in every level
+
+
+# ---------------------------------------------------------------- A2: server identity, order file, timestamps
+
+def test_records_carry_run_index_start_time_server_and_prompt_tokens(tmp_path, patched, monkeypatch):
+    from sarqa.run.server import ServerIdentity
+
+    class Watch:
+        def __init__(self, host):
+            pass
+
+        def identity(self):
+            return ServerIdentity(4242, "2026-10-01T00:00:00Z")
+
+    monkeypatch.setattr(RN, "ServerWatch", Watch)
+    run_it(tmp_path, patched, [1, 2])
+    recs = RN.load_records(tmp_path)
+    assert R.validate_record(recs[0]) == []
+    assert sorted(r["run_index"] for r in recs) == list(range(12))
+    assert all(r["server"] == {"pid": 4242, "started_at": "2026-10-01T00:00:00Z"} for r in recs)
+    assert all(r["started_at"].endswith("Z") and len(r["started_at"]) == 20 for r in recs)
+    m = json.loads((tmp_path / "manifest.json").read_text())
+    assert m["servers"] == [{"pid": 4242, "started_at": "2026-10-01T00:00:00Z", "runs": 12,
+                             "first_run_index": 0, "last_run_index": 11}]
+
+
+def test_a_changed_server_is_logged_and_the_run_continues(tmp_path, patched, monkeypatch):
+    from sarqa.run.server import ServerIdentity
+
+    ids = iter([ServerIdentity(1, "a")] + [ServerIdentity(1, "a")] * 3 + [ServerIdentity(2, "b")] * 20)
+
+    class Watch:
+        def __init__(self, host):
+            pass
+
+        def identity(self):
+            return next(ids)
+
+    monkeypatch.setattr(RN, "ServerWatch", Watch)
+    lines = []
+    RN.run([1], "dev", make_questions(), tmp_path, FakeLLM([]), ctx=patched, log=lines.append, agent=fake_agent)
+    warn = [x for x in lines if "server process changed" in x]
+    assert len(warn) == 1 and "no automatic restart" in warn[0]
+    recs = sorted(RN.load_records(tmp_path), key=lambda r: r["run_index"])
+    assert len(recs) == 6 and [r["server"]["pid"] for r in recs] == [1, 1, 1, 2, 2, 2]
+    m = json.loads((tmp_path / "manifest.json").read_text())
+    assert [s["pid"] for s in m["servers"]] == [1, 2]
+
+
+def test_order_file_is_saved_hashed_in_the_manifest_and_stable_on_resume(tmp_path, patched):
+    run_it(tmp_path, patched, [1, 2], limit=4)
+    first = (tmp_path / "order.json").read_text()
+    doc = json.loads(first)
+    assert len(doc["runs"]) == 12 and [r["run_index"] for r in doc["runs"]] == list(range(12))
+    run_it(tmp_path, patched, [1, 2])                            # resume with the same arguments
+    assert (tmp_path / "order.json").read_text() == first
+    m = json.loads((tmp_path / "manifest.json").read_text())
+    import hashlib
+    assert m["order_files"] == {"order.json": hashlib.sha256(first.encode()).hexdigest()}
+    recs = RN.load_records(tmp_path)
+    by_id = {r["run_id"]: r["run_index"] for r in recs}
+    assert all(by_id[x["run_id"]] == x["run_index"] for x in doc["runs"])       # records follow the saved order
+    run_it(tmp_path, patched, [1])                                # a different plan gets its own file
+    assert (tmp_path / "order.json").read_text() == first
+    assert len(list(tmp_path.glob("order_*.json"))) == 1
+
+
+def test_prompt_tokens_max_is_the_largest_single_call():
+    q = {**QUESTION_FOR_TOKENS}
+    llm = FakeLLM([INTERP_FOR_TOKENS, {"reading": [], "decision": None, "action": {"type": "answer", "answer": 3, "unit": "ships"}}])
+    llm_calls = []
+    orig = llm.chat
+
+    def chat(messages, schema, seed, timeout=300):
+        r = orig(messages, schema, seed, timeout)
+        r.tokens_in = 100 * (len(llm_calls) + 1)
+        llm_calls.append(1)
+        return r
+
+    llm.chat = chat
+    from sarqa.agents import run_agent
+    rec = run_agent("stepwise", q, mini_context(), llm)
+    assert rec["prompt_tokens_max"] == 200 and rec["tokens_in"] == 300
+
+
+QUESTION_FOR_TOKENS = {"qid": "D-L1-001", "level": "L1", "image_id": "m3.jpg", "text_ko": "몇 척인가?",
+                       "answer_type": "int", "unit": "ships", "gold_answer": 3, "tolerance": {"rel": 0.0},
+                       "budget": 4, "gold_calls": 1}
+INTERP_FOR_TOKENS = {"interpretation": blank_interpretation(target="ship_count", unit="ships")}
+
+
+def test_keep_alive_is_sent_with_every_request(monkeypatch):
+    from sarqa.agents.llm import OllamaClient
+
+    sent = {}
+
+    def fake_post(self, path, body, timeout):
+        sent.update(body)
+        return {"message": {"content": "{}"}, "prompt_eval_count": 5, "eval_count": 1}
+
+    monkeypatch.setattr(OllamaClient, "_post", fake_post)
+    OllamaClient().chat([{"role": "user", "content": "x"}], {"type": "object"}, seed=1)
+    assert sent["keep_alive"] == -1 and sent["options"]["seed"] == 1 and sent["think"] is False
+
+
+# ---------------------------------------------------------------- server identity from /proc (fake proc tree)
+
+def _fake_proc(tmp_path, pid=777, port=11434, inode=99999, ticks=123456, btime=1_700_000_000):
+    proc = tmp_path / "proc"
+    (proc / "net").mkdir(parents=True)
+    (proc / "net" / "tcp").write_text(
+        "  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode\n"
+        f"   0: 0100007F:{port:04X} 00000000:0000 0A 00000000:00000000 00:00000000 00000000  1000        0 {inode} 1 x\n"
+        f"   1: 0100007F:1F90 00000000:0000 01 00000000:00000000 00:00000000 00000000  1000        0 555 1 x\n")
+    (proc / "stat").write_text(f"cpu  1 2 3\nbtime {btime}\n")
+    d = proc / str(pid)
+    (d / "fd").mkdir(parents=True)
+    (d / "fd" / "5").symlink_to(f"socket:[{inode}]")
+    (d / "stat").write_text(f"{pid} (ollama serve) S 1 1 1 0 -1 4194560 0 0 0 0 0 0 0 0 20 0 8 0 {ticks} 1 2 3\n")
+    return proc
+
+
+def test_server_identity_from_proc(tmp_path):
+    import datetime as dt
+    import os
+
+    from sarqa.run.server import ServerWatch, find_pid, port_of, start_time
+
+    proc = _fake_proc(tmp_path)
+    assert port_of("http://localhost:11434") == 11434 and port_of("localhost:11435") == 11435
+    assert find_pid(11434, proc) == 777 and find_pid(9999, proc) is None
+    hz = os.sysconf("SC_CLK_TCK")
+    expect = dt.datetime.fromtimestamp(1_700_000_000 + 123456 / hz, dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    assert start_time(777, proc) == expect
+    w = ServerWatch("http://localhost:11434", proc)
+    ident = w.identity()
+    assert (ident.pid, ident.started_at) == (777, expect) and w.identity() == ident
+    (proc / "777" / "stat").write_text((proc / "777" / "stat").read_text().replace("123456", "999999"))
+    assert w.identity().started_at != expect                     # same pid reused with a new start time = a new server
+    assert ServerWatch("http://gpu-box.example:11434", proc).identity() is None       # remote host: unknown

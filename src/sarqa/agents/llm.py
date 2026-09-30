@@ -42,6 +42,7 @@ class OllamaClient:
         self.model = model or cfg["model"]
         self.host = (host or cfg["host"]).rstrip("/")
         self.think = cfg["think"]
+        self.keep_alive = cfg.get("keep_alive", -1)   # -1: the model stays loaded between runs
         self.options = {"temperature": cfg["temperature"], "num_ctx": cfg["num_ctx"],
                         "num_predict": cfg["num_predict"], **options}
 
@@ -56,7 +57,7 @@ class OllamaClient:
 
     def chat(self, messages: list[dict], schema: dict, seed: int, timeout: float = 300) -> LLMReply:
         body = {"model": self.model, "messages": messages, "stream": False, "think": self.think,
-                "format": schema, "options": {**self.options, "seed": seed}}
+                "keep_alive": self.keep_alive, "format": schema, "options": {**self.options, "seed": seed}}
         t0 = time.monotonic()
         out = self._post("/api/chat", body, timeout)
         msg = out.get("message") or {}
