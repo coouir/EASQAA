@@ -28,6 +28,8 @@ git checkout -q "$(git -C "$REPO" rev-parse "$REF")" || exit 2
 git remote remove origin
 git config user.email rehearsal@example.invalid; git config user.name rehearsal
 ln -s "$REPO/data" data; ln -s "$REPO/outputs" outputs
+# .gitignore has `/data/` and `/outputs/` (directories); a symlink is not one, so keep it out of `git status`
+printf 'data\noutputs\n' >> .git/info/exclude
 export PYTHONPATH="$CLONE/src"
 SARQA=("$PY" -c "from sarqa.cli import main; raise SystemExit(main())")
 
