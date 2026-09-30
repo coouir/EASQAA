@@ -71,7 +71,7 @@ def _balance_key(t: Template, answer, decisions):
     if t.has_branch:
         top = [d for d in decisions if d["top_level"]]
         return ("branch", top[-1]["chosen"] if top else None, answer if t.answer_type == "category" else None)
-    return answer if t.answer_type in ("category", "int") else None
+    return answer if t.answer_type in ("category", "int", "float") else None
 
 
 def _json_safe(v):
@@ -91,6 +91,8 @@ def build_record(t: Template, slots: dict, image_id: str, group: str, split: str
             answer = int(answer)
         if not isinstance(answer, int):
             return None
+    if t.answer_type == "float" and isinstance(answer, (int, float)) and not isinstance(answer, bool):
+        answer = float(answer)
     branch_spec = t.branch_spec(slots) if t.branch_spec else None
     top = [d for d in res.decisions if d["top_level"]]
     if branch_spec and top:

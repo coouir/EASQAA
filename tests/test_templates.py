@@ -134,3 +134,12 @@ def test_interpretation_schema_lists_every_target():
     schema = vocab.interpretation_schema()
     assert schema["properties"]["target"]["enum"] == list(vocab.TARGETS)
     assert set(schema["required"]) == set(vocab.INTERPRETATION_KEYS)
+
+
+def test_longest_length_is_a_float_question_with_five_percent_tolerance():
+    from sarqa.grading import grade
+
+    t = TEMPLATES["l2_longest_length"]
+    assert t.answer_type == "float" and t.interpretation({})["answer_type"] == "float"
+    assert grade(62, "px", 60.0, "px", "float").correct           # 3.3 % off: a small box jitter is fine
+    assert not grade(64, "px", 60.0, "px", "float").correct        # 6.7 % off
