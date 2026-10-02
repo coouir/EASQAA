@@ -73,7 +73,7 @@ The first-deviation stage assigned by the automatic error classification was val
 
 ## Citation
 
-This repository contains the code and data of the paper 'Error Analysis of SAR Question-Answering Agents', submitted to the undergraduate paper competition of the 2026 Fall Conference of the Korean Institute of Broadcast and Media Engineers.
+This repository contains the code and data of the paper 'Error Analysis of SAR Question-Answering Agents', submitted to the undergraduate paper competition of the 2026 Fall Conference of The Korean Institute of Broadcast and Media Engineers.
 
 ## License
 
