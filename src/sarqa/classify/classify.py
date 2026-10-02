@@ -52,7 +52,7 @@ def find_deviations(rec: dict, question: dict, provider, ctx, reachable, exps=No
     devs: list[Dev] = []
     s1 = stages.stage1(rec, trace, question)
     devs += stages.stage2(trace, exp, unmatched, missing, has_answer)
-    devs += stages.stage3(trace, rec, question)
+    devs += stages.stage3(trace, rec, question, exps)
     devs += stages.stage4(trace, question, exps)
     devs += stages.stage5(trace, exp, has_answer, rec)
     if has_answer:
@@ -63,6 +63,9 @@ def find_deviations(rec: dict, question: dict, provider, ctx, reachable, exps=No
     if s1 is not None:
         # a record-only mismatch: the calls and branches went the gold way
         followed = not any(d.stage in (2, 4) and not d.harmless for d in devs)
+        # a question with a branch is only followed if the run made a branch decision at all (SPEC §11.1)
+        if question["has_branch"] and not trace.branch_decisions:
+            followed = False
         unit_ok = not has_answer or normalize_unit((rec["answer"] or {}).get("unit")) == question["unit"]
         if followed and unit_ok:
             s1.harmless = True
