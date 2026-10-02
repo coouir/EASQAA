@@ -1,0 +1,15 @@
+﻿item,expected_PROTOCOL,actual
+questions with answer changed by injection (miss),62,62
+questions with answer changed by injection (fp),43,43
+questions with answer changed by injection (loc),6,6
+detected answer wrong (box_dependent),81,81
+recoverable by correction (miss),43,43
+recoverable by correction (fp),6,6
+recoverable by correction (loc),2,2
+input_error runs of condition 6 = answer_changed (miss),62,62
+input_error runs of condition 7 = answer_changed (fp),43,43
+input_error runs of condition 8 = answer_changed (loc),6,6
+input_error runs of condition 2 = detected wrong,81,81
+input_error runs of condition 9 = corrected answer wrong,40,40
+input_error runs of condition 10 = corrected answer wrong,80,80
+input_error runs of condition 11 = corrected answer wrong,80,80

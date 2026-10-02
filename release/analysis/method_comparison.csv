@@ -1,0 +1,15 @@
+﻿subset,n,quantity,value,ci_low,ci_high
+all,360,stepwise accuracy drop label->detected (cond 1 - cond 2),0.1528,0.0988,0.212
+all,360,batch accuracy drop label->detected (cond 4 - cond 5),0.125,0.0809,0.1763
+all,360,difference of the drops (1->2) - (4->5),0.0278,-0.017,0.0714
+all,360,"batch minus stepwise, label (cond 4 - cond 1)",-0.0611,-0.1083,-0.0083
+all,360,"batch minus stepwise, detected (cond 5 - cond 2)",-0.0333,-0.0748,0.0143
+box_dependent,304,stepwise accuracy drop label->detected (cond 1 - cond 2),0.1809,0.1189,0.2474
+box_dependent,304,batch accuracy drop label->detected (cond 4 - cond 5),0.148,0.0972,0.2051
+box_dependent,304,difference of the drops (1->2) - (4->5),0.0329,-0.0201,0.0849
+box_dependent,304,"batch minus stepwise, label (cond 4 - cond 1)",-0.0691,-0.1245,-0.0071
+box_dependent,304,"batch minus stepwise, detected (cond 5 - cond 2)",-0.0362,-0.0822,0.0179
+all,360,accuracy cond 1 - cond 4 (paired),0.0611,0.0083,0.1083
+box_dependent,304,accuracy cond 1 - cond 4 (paired),0.0691,0.0071,0.1245
+all,360,accuracy cond 2 - cond 5 (paired),0.0333,-0.0143,0.0748
+box_dependent,304,accuracy cond 2 - cond 5 (paired),0.0362,-0.0179,0.0822

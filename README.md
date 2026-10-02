@@ -44,6 +44,8 @@ HRSID는 이 저장소에 **포함되어 있지 않다**. 각자 원 출처에�
 
 HRSID: S. Wei, X. Zeng, Q. Qu, M. Wang, H. Su, J. Shi, 'HRSID: A High-Resolution SAR Images Dataset for Ship Detection and Instance Segmentation,' IEEE Access, vol. 8, pp. 120234–120254, 2020.
 
+논문에서 공개한 문항, 실행 기록, 분류 결과, 집계 표는 [`release/`](release/)에 있다.
+
 `splits/`의 파일(`scenes.json`, `splits.json`, `splits_report.json`)은 영상 파일명, 장면 묶음 번호, 분할·연안/외해 태그, 영상별 상자 개수만 담고 있다. 영상 자체와 상자 좌표는 들어 있지 않다.
 
 ## 재현 절차

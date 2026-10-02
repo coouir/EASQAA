@@ -1,0 +1,29 @@
+﻿condition,input_cause,runs,share_of_input_error_runs
+1,miss,0,
+1,fp,0,
+1,loc,0,
+1,multiple,0,
+1,composite,0,
+1,unknown,0,
+1,(all input-error runs),0,
+2,miss,42,0.5185
+2,fp,6,0.0741
+2,loc,1,0.0123
+2,multiple,1,0.0123
+2,composite,18,0.2222
+2,unknown,13,0.1605
+2,(all input-error runs),81,1.0
+4,miss,0,
+4,fp,0,
+4,loc,0,
+4,multiple,0,
+4,composite,0,
+4,unknown,0,
+4,(all input-error runs),0,
+5,miss,42,0.5185
+5,fp,6,0.0741
+5,loc,1,0.0123
+5,multiple,1,0.0123
+5,composite,18,0.2222
+5,unknown,13,0.1605
+5,(all input-error runs),81,1.0

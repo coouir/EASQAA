@@ -1,0 +1,8 @@
+﻿ai,answer_formatting,calculation,exec_fail,interpretation,planning_branch,result_reading,tool_selection
+answer_formatting,0,0,0,0,0,1,0
+calculation,0,7,0,10,0,0,24
+exec_fail,0,0,4,7,0,0,0
+interpretation,0,0,7,5,0,0,1
+planning_branch,0,0,0,8,0,0,0
+result_reading,0,0,0,2,0,0,0
+tool_selection,0,0,0,10,0,0,14

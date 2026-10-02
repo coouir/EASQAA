@@ -1,0 +1,41 @@
+﻿condition,first_deviation,runs,share_of_agent_error_runs
+1,interpretation,33,0.44
+1,tool_selection,40,0.5333
+1,result_reading,0,0.0
+1,planning_branch,0,0.0
+1,calculation,1,0.0133
+1,answer_formatting,0,0.0
+1,exec_fail,1,0.0133
+1,unknown,0,0.0
+1,(all agent-error runs),75,1.0
+1,"(execution failures: budget_exceeded=32, format_error=2)",34,
+2,interpretation,34,0.4722
+2,tool_selection,36,0.5
+2,result_reading,0,0.0
+2,planning_branch,0,0.0
+2,calculation,0,0.0
+2,answer_formatting,0,0.0
+2,exec_fail,2,0.0278
+2,unknown,0,0.0
+2,(all agent-error runs),72,1.0
+2,"(execution failures: budget_exceeded=25, format_error=1)",26,
+4,interpretation,47,0.4845
+4,tool_selection,26,0.268
+4,result_reading,1,0.0103
+4,planning_branch,0,0.0
+4,calculation,7,0.0722
+4,answer_formatting,0,0.0
+4,exec_fail,16,0.1649
+4,unknown,0,0.0
+4,(all agent-error runs),97,1.0
+4,"(execution failures: budget_exceeded=15, format_error=8, plan_format_error=7)",30,
+5,interpretation,45,0.4688
+5,tool_selection,29,0.3021
+5,result_reading,1,0.0104
+5,planning_branch,0,0.0
+5,calculation,7,0.0729
+5,answer_formatting,0,0.0
+5,exec_fail,14,0.1458
+5,unknown,0,0.0
+5,(all agent-error runs),96,1.0
+5,"(execution failures: budget_exceeded=14, format_error=4, plan_format_error=7)",25,

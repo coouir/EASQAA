@@ -1,0 +1,4 @@
+﻿subset,n,acc_cond1,acc_cond3,acc_diff_1_minus_3,acc_diff_ci_low,acc_diff_ci_high,share_correctness_differs,correctness_differs_ci_low,correctness_differs_ci_high,share_final_answer_differs,answer_differs_ci_low,answer_differs_ci_high,questions_correctness_differs,questions_answer_differs
+all,360,0.7917,0.7972,-0.0056,-0.0346,0.0221,0.0667,0.0476,0.086,0.0917,0.0677,0.1148,24,33
+box_dependent,304,0.7533,0.7599,-0.0066,-0.041,0.0261,0.0789,0.0576,0.1003,0.1086,0.0817,0.1337,24,33
+not_box_dependent,56,1.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0,0

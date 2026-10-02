@@ -1,0 +1,15 @@
+﻿condition,first_deviation,population,sample
+1,exec_fail,1,1
+1,interpretation,28,11
+1,tool_selection,37,14
+2,interpretation,22,9
+2,tool_selection,23,9
+4,calculation,6,4
+4,exec_fail,11,6
+4,interpretation,36,14
+4,result_reading,1,1
+4,tool_selection,22,9
+5,calculation,3,3
+5,exec_fail,5,4
+5,interpretation,20,8
+5,tool_selection,15,7

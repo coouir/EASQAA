@@ -1,0 +1,95 @@
+{
+ "files": {
+  "condition_01.jsonl": {
+   "sha256": "ba5af96304e0e5c583d32ea13f4bbc8bb5b4bd51d99bb460fe61f3b103f47811",
+   "runs": 360,
+   "torn_lines": 0,
+   "questions": 360,
+   "duplicates": 0
+  },
+  "condition_02.jsonl": {
+   "sha256": "df097048ef6b344810bf0865c0dafadb4bc71558dc7f7ff07e4eed28e7c73eb8",
+   "runs": 360,
+   "torn_lines": 0,
+   "questions": 360,
+   "duplicates": 0
+  },
+  "condition_03.jsonl": {
+   "sha256": "9425e3b5713bf7d0efb456420d6ceb5913a7dbf0db552d383fe74b5341556d60",
+   "runs": 360,
+   "torn_lines": 0,
+   "questions": 360,
+   "duplicates": 0
+  },
+  "condition_04.jsonl": {
+   "sha256": "d57298c952df226f8f91566b4dd1eaf0ca860af5f8ca8327f5aca39f0f3540de",
+   "runs": 360,
+   "torn_lines": 0,
+   "questions": 360,
+   "duplicates": 0
+  },
+  "condition_05.jsonl": {
+   "sha256": "e2099bd656627b6f66be9a7f0dca0fa49a6b5c31c34f79ce4ade4b0f3bc3e4f7",
+   "runs": 360,
+   "torn_lines": 0,
+   "questions": 360,
+   "duplicates": 0
+  },
+  "condition_06.jsonl": {
+   "sha256": "fb72abbd843b70a4c57b354f4873bd5de11ff7d28c9fe4f73c9c0f0a8ff45e9d",
+   "runs": 360,
+   "torn_lines": 0,
+   "questions": 360,
+   "duplicates": 0
+  },
+  "condition_07.jsonl": {
+   "sha256": "e076c7f9c73924fa2c12a9412a316093396a15163ea5beb16fe5e6aa7e063670",
+   "runs": 360,
+   "torn_lines": 0,
+   "questions": 360,
+   "duplicates": 0
+  },
+  "condition_08.jsonl": {
+   "sha256": "dc088144df3b8abd2459a2ab490249cede7e7ec8df48437d78efbbb8d64aa782",
+   "runs": 360,
+   "torn_lines": 0,
+   "questions": 360,
+   "duplicates": 0
+  },
+  "condition_09.jsonl": {
+   "sha256": "5901535d5e5da56fa604ba9c144f2ac3949b37e226bed201040b53ab3bcaa298",
+   "runs": 360,
+   "torn_lines": 0,
+   "questions": 360,
+   "duplicates": 0
+  },
+  "condition_10.jsonl": {
+   "sha256": "8ab1fff8b7cc1ee13b18dddf4ed7588416abf23ee4926701201b7bcff9867274",
+   "runs": 360,
+   "torn_lines": 0,
+   "questions": 360,
+   "duplicates": 0
+  },
+  "condition_11.jsonl": {
+   "sha256": "ce0fcaeb3fd808f1d3e15b68ef6fbd92e7ce90dedde25e1062a8fcb909712ebc",
+   "runs": 360,
+   "torn_lines": 0,
+   "questions": 360,
+   "duplicates": 0
+  }
+ },
+ "total_runs": 3960,
+ "order_files": {
+  "order.json": "d7c8be53304fcfff2d229760451159424edd95677f2fde304e20b4bbc4a0daad"
+ },
+ "servers": [
+  {
+   "pid": 1592587,
+   "started_at": "2026-09-30T02:20:23Z",
+   "runs": 3960,
+   "first_run_index": 0,
+   "last_run_index": 3959
+  }
+ ],
+ "prompt_tokens_max": 16353
+}
