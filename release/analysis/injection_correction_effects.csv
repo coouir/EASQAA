@@ -1,0 +1,19 @@
+﻿effect,condition_pair,questions,n,acc_before,acc_after,change_after_minus_before,ci_low,ci_high
+injection miss,1 -> 6,box_dependent (all),304,0.7533,0.6184,-0.1349,-0.2081,-0.074
+injection miss,1 -> 6,answer changed by the injection,62,0.7742,0.0323,-0.7419,-0.8276,-0.6393
+injection miss,1 -> 6,answer not changed,242,0.7479,0.7686,0.0207,0.0068,0.0396
+injection fp,1 -> 7,box_dependent (all),304,0.7533,0.6513,-0.102,-0.1512,-0.0601
+injection fp,1 -> 7,answer changed by the injection,43,0.6744,0.0,-0.6744,-0.7576,-0.5854
+injection fp,1 -> 7,answer not changed,261,0.7663,0.7586,-0.0077,-0.0333,0.0148
+injection loc,1 -> 8,box_dependent (all),304,0.7533,0.7401,-0.0132,-0.0345,0.0076
+injection loc,1 -> 8,answer changed by the injection,6,0.8333,0.0,-0.8333,-1.0,-0.3333
+injection loc,1 -> 8,answer not changed,298,0.7517,0.755,0.0034,-0.0169,0.0231
+correction miss,2 -> 9,box_dependent (all),304,0.5724,0.6776,0.1053,0.0736,0.1342
+correction miss,2 -> 9,detected wrong and recoverable,43,0.0233,0.8372,0.814,0.7209,0.9211
+correction miss,2 -> 9,"detected wrong, not recoverable",38,0.0526,0.0789,0.0263,0.0,0.087
+correction fp,2 -> 10,box_dependent (all),304,0.5724,0.5691,-0.0033,-0.0241,0.0193
+correction fp,2 -> 10,detected wrong and recoverable,6,0.1667,0.6667,0.5,0.0,1.0
+correction fp,2 -> 10,"detected wrong, not recoverable",75,0.0267,0.0267,0.0,0.0,0.0
+correction loc,2 -> 11,box_dependent (all),304,0.5724,0.5691,-0.0033,-0.0201,0.0138
+correction loc,2 -> 11,detected wrong and recoverable,2,0.0,1.0,1.0,1.0,1.0
+correction loc,2 -> 11,"detected wrong, not recoverable",79,0.038,0.038,0.0,0.0,0.0

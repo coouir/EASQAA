@@ -1,0 +1,8 @@
+﻿auto_stage,n_auto,human_agrees,n_human
+answer_formatting,0,0,1
+calculation,7,7,41
+exec_fail,11,4,11
+interpretation,42,5,13
+planning_branch,0,0,8
+result_reading,1,0,2
+tool_selection,39,14,24

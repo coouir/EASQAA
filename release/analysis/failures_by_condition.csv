@@ -1,0 +1,12 @@
+﻿condition,method,input,runs,correct,accuracy,exec_fail,exec_fail_rate,budget_exceeded,budget_exceeded_rate,format_error,plan_format_error,other_fail,mean_tool_calls,mean_llm_calls,mean_wall_s,unit_only_fix
+1,stepwise,label,360,285,0.7917,34,0.0944,32,0.0889,2,0,0,4.53,6.54,14.9,0
+2,stepwise,detected,360,230,0.6389,26,0.0722,25,0.0694,1,0,0,4.3,6.3,12.7,0
+3,stepwise,label,360,287,0.7972,30,0.0833,26,0.0722,4,0,0,4.48,6.49,14.9,0
+4,batch,label,360,263,0.7306,30,0.0833,15,0.0417,8,7,0,4.6,2.04,10.3,0
+5,batch,detected,360,218,0.6056,25,0.0694,14,0.0389,4,7,0,4.57,2.02,9.3,0
+6,stepwise,injected:miss,360,244,0.6778,37,0.1028,34,0.0944,3,0,0,4.46,6.47,14.1,0
+7,stepwise,injected:fp,360,254,0.7056,35,0.0972,32,0.0889,3,0,0,4.49,6.5,15.9,0
+8,stepwise,injected:loc,360,281,0.7806,36,0.1,34,0.0944,2,0,0,4.54,6.54,15.1,0
+9,stepwise,corrected:miss,360,262,0.7278,23,0.0639,22,0.0611,1,0,0,4.33,6.33,14.0,0
+10,stepwise,corrected:fp,360,229,0.6361,29,0.0806,28,0.0778,1,0,0,4.35,6.35,12.7,0
+11,stepwise,corrected:loc,360,229,0.6361,26,0.0722,26,0.0722,0,0,0,4.33,6.33,12.6,0

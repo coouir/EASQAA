@@ -1,0 +1,14 @@
+﻿qid,conditions,template,level,labels,received,after_3_fixes,remaining_differences,gold_answer,answer_type,answer_on_received,answer_on_all_fixed,all_fixed_matches_gold,answer_on_label_boxes,label_boxes_match_gold
+T-L2-021,2/5,l2_longest_length,L2,2,2,2,fixed#0~label#0 IoU 0.871,51.0,float,47,47,False,51,True
+T-L2-031,2/5,l2_longest_length,L2,8,6,8,fixed#0~label#0 IoU 0.893; fixed#1~label#1 IoU 0.792; fixed#4~label#4 IoU 0.883; fixed#5~label#5 IoU 0.92,59.0,float,64,64,False,59,True
+T-L2-033,2/5,l2_longest_length,L2,3,3,3,fixed#0~label#0 IoU 0.778; fixed#1~label#1 IoU 0.924; fixed#2~label#2 IoU 0.885,57.0,float,61,61,False,57,True
+T-L2-064,2/5,l2_longest_neighbor,L2,3,3,3,fixed#0~label#0 IoU 0.931; fixed#1~label#1 IoU 0.894; fixed#2~label#2 IoU 0.929,367.9,float,532.8,532.8,False,367.9,True
+T-L2-089,2/5,l2_longest_shortest_distance,L2,8,2,8,fixed#0~label#0 IoU 0.905; fixed#1~label#3 IoU 0.8,213.1,float,136.1,78.8,False,213.1,True
+T-L4-004,2/5,l4_scene_branch,L4,2,2,2,fixed#0~label#0 IoU 0.83; fixed#1~label#1 IoU 0.873,93.0,float,99,99,False,93,True
+T-L4-005,2/5,l4_scene_branch,L4,2,2,2,fixed#0~label#0 IoU 0.909; fixed#1~label#1 IoU 0.945,52.0,float,55,55,False,52,True
+T-L4-010,2/5,l4_scene_branch,L4,2,2,2,fixed#0~label#0 IoU 0.883; fixed#1~label#1 IoU 0.86,55.0,float,59,59,False,55,True
+T-L4-013,2/5,l4_scene_branch,L4,3,3,3,fixed#0~label#0 IoU 0.854; fixed#1~label#1 IoU 0.894,12.5,float,121.9,11.1,False,12.5,True
+T-L4-017,2/5,l4_count_branch,L4,2,2,2,fixed#0~label#0 IoU 0.878; fixed#1~label#1 IoU 0.78,49.0,float,43,43,False,49,True
+T-L4-019,2/5,l4_count_branch,L4,2,2,2,fixed#0~label#0 IoU 0.896; fixed#1~label#1 IoU 0.879,87.0,float,92,92,False,87,True
+T-L4-022,2/5,l4_count_branch,L4,2,2,2,fixed#0~label#0 IoU 0.844; fixed#1~label#1 IoU 0.755,32.0,float,30,30,False,32,True
+T-L4-023,2/5,l4_count_branch,L4,6,4,6,fixed#0~label#0 IoU 0.853; fixed#1~label#1 IoU 0.883,54.0,float,113,51,False,54,True
