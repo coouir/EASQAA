@@ -132,20 +132,21 @@ def make(analysis: Path, out: Path) -> list[Path]:
     n_err = agent_error_counts(dev_rows)
     fig, (a, b) = plt.subplots(1, 2, figsize=(WIDTH_CM * CM, HEIGHT_CM * CM))
     tops, ha = stacked(a, cells, CELLS, STYLE_A, "오답 비율 (%)", 50)
-    a.yaxis.labelpad = 1
+    a.yaxis.labelpad = 4
     _, hb = stacked(b, stages, STAGES, STYLE_B, "에이전트 오류 중 (%)", 112)
     b.set_yticks([0, 25, 50, 75, 100])
-    b.yaxis.labelpad = 1
+    b.yaxis.labelpad = 4
     for i, c in enumerate(CONDITIONS):   # numbers on top of the bars
         a.text(i, tops[i] + 0.8, f"{tops[i]:.1f}", ha="center", va="bottom")
         b.text(i, 101, f"n={n_err[c]}", ha="center", va="bottom", linespacing=0.9)
     a.set_title("(a)", loc="left", fontsize=8, pad=2)
     b.set_title("(b)", loc="left", fontsize=8, pad=2)
     # legends under the panels, top entry = top piece of the stack; (b) in two columns, filled down the first column first
-    kw = {"frameon": False, "handlelength": 1.3, "handletextpad": 0.4, "labelspacing": 0.2, "borderaxespad": 0, "columnspacing": 0.8}
-    fig.legend(ha[::-1], [p[1] for p in CELLS][::-1], loc="lower left", bbox_to_anchor=(0.02, 0.0), ncol=1, **kw)
-    fig.legend(hb[::-1], [p[1] for p in STAGES][::-1], loc="lower left", bbox_to_anchor=(0.40, 0.0), ncol=2, **kw)
-    fig.subplots_adjust(left=0.115, right=0.995, top=0.93, bottom=0.34, wspace=0.42)
+    kw = {"frameon": False, "handlelength": 1.3, "handletextpad": 0.4, "labelspacing": 0.2, "borderaxespad": 0, "columnspacing": 0.8,
+          "title_fontsize": 8}
+    fig.legend(ha[::-1], [p[1] for p in CELLS][::-1], loc="lower left", bbox_to_anchor=(0.02, 0.0), ncol=1, title="(a)", alignment="left", **kw)
+    fig.legend(hb[::-1], [p[1] for p in STAGES][::-1], loc="lower left", bbox_to_anchor=(0.40, 0.0), ncol=2, title="(b)", alignment="left", **kw)
+    fig.subplots_adjust(left=0.135, right=0.995, top=0.93, bottom=0.375, wspace=0.5)
     out.mkdir(parents=True, exist_ok=True)
     paths = []
     for ext, kw in (("png", {"dpi": 600}), ("pdf", {})):
