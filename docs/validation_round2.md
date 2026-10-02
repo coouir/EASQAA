@@ -31,3 +31,76 @@
 - 1차(110건)는 분류기 구현 오류 4곳을 찾은 **점검 단계**로 보고한다.
 - 2차를 **검증 결과**로 보고한다.
 - 2차 결과를 본 뒤에는 분류 코드를 바꾸지 않는다.
+
+## 결과
+
+계획대로 계산했다(제외 없음, 분류 코드는 바꾸지 않음). 입력: `outputs/analysis/ai_check2_out/ai_labels2.csv`(sha256 `58b2b94f5ec25cb54f71e6137593ad163b464f4906bdf88bf681d0afd7b86c78`, 100건), 키 `outputs/analysis/ai_check2_KEY/ai_check2_key.csv`. 코드 `analysis/validation_round2.py`, 결과 CSV는 `outputs/analysis/ai_check2_out/`. 부트스트랩은 실행 단위, 10,000회, 시드 20261002, 백분위 95% 구간.
+
+### 주 결과 (100건)
+- 일치율 **30/100 = 0.300**
+- 코헨 카파 **0.137** (95% 구간 0.043 ~ 0.234)
+
+혼동 행렬 (행 = AI, 열 = 자동 분류, `confusion.csv`):
+
+| AI \ 자동 | answer_formatting | calculation | exec_fail | interpretation | planning_branch | result_reading | tool_selection |
+|---|---|---|---|---|---|---|---|
+| answer_formatting | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| calculation | 0 | **7** | 0 | 10 | 0 | 0 | 24 |
+| exec_fail | 0 | 0 | **4** | 7 | 0 | 0 | 0 |
+| interpretation | 0 | 0 | 7 | **5** | 0 | 0 | 1 |
+| planning_branch | 0 | 0 | 0 | 8 | 0 | 0 | 0 |
+| result_reading | 0 | 0 | 0 | 2 | 0 | 0 | 0 |
+| tool_selection | 0 | 0 | 0 | 10 | 0 | 0 | **14** |
+
+단계별 일치 (`by_stage.csv`):
+
+| 단계 | 자동 건수 | AI 건수 | 둘 다 같음 |
+|---|---|---|---|
+| interpretation | 42 | 13 | 5 |
+| tool_selection | 39 | 24 | 14 |
+| calculation | 7 | 41 | 7 |
+| exec_fail | 11 | 11 | 4 |
+| result_reading | 1 | 2 | 0 |
+| planning_branch | 0 | 8 | 0 |
+| answer_formatting | 0 | 1 | 0 |
+
+확신도별 일치율 (`by_confidence.csv`, 메모 맨 앞의 태그):
+
+| 확신도 | 건수 | 일치 | 일치율 |
+|---|---|---|---|
+| high | 42 | 15 | 0.357 |
+| medium | 48 | 12 | 0.250 |
+| low | 10 | 3 | 0.300 |
+
+조건별 일치율 (`by_condition.csv`):
+
+| 조건 | 건수 | 일치 | 일치율 |
+|---|---|---|---|
+| 1 | 26 | 10 | 0.385 |
+| 2 | 18 | 7 | 0.389 |
+| 4 | 34 | 8 | 0.235 |
+| 5 | 22 | 5 | 0.227 |
+
+### 보조 결과 (97건, 보조임)
+기준표(guide.html)의 단계별 예시로 쓰인 3건(rank 16 `f3a256b2f40e2d15`, rank 19 `2ed629eaa0dc18e9`, rank 38 `4380d06cf046efe7`)을 뺐다. 계획에 없던 보조 분석이고 주 결과는 위의 100건이다.
+- 일치율 **27/97 = 0.278**, 코헨 카파 **0.112** (95% 구간 0.021 ~ 0.207)
+
+### 불일치 분석
+불일치 70건. 건수가 많은 칸 상위 4개(`disagreement_cells.csv`, 전체 목록은 `disagreements.csv`). 자동 코드는 자동 분류의 첫 이탈을 만든 판정 코드이다. 대표 rank는 해당 칸에서 rank가 가장 작은 2개이다.
+
+| 칸 (AI / 자동) | 건수 | 자동 판정 코드 | 대표 rank |
+|---|---|---|---|
+| calculation / tool_selection | 24 | extra_call 12, missing_call 11, wrong_args 1 | 1, 6 |
+| calculation / interpretation | 10 | interpretation_mismatch 10 | 5, 8 |
+| tool_selection / interpretation | 10 | interpretation_mismatch 10 | 35, 45 |
+| planning_branch / interpretation | 8 | interpretation_mismatch 8 | 10, 31 |
+
+AI 메모의 요지 (각 칸의 메모를 읽은 요약; 판단이 아니라 메모 내용):
+- **calculation / tool_selection (24):** `missing_call` 11건의 메모는 대부분 "turn 1 plan의 calc 인자 `$s2.ships.long_side_px` 참조 오류(c3 error), 호출 구성은 정답 풀이와 같음"이다(rank 1, 6 등). `extra_call` 12건의 메모는 "사분면별 `detect_ships`로 개수는 맞게 읽었으나 `calc` 없이 스스로 세어 답함"이나 "turn 10 `calc argmax` list가 목록의 목록"이다(rank 7, 20 등).
+- **calculation / interpretation (10):** 메모는 "해석 target=pair_distance(정답 longest_neighbor_distance)이나 plan은 argmax+nearest_to로 정답 풀이대로라 무해로 봄"이고, 이어서 `calc` 참조 오류를 든다(rank 5, 8 등). AI는 해석 불일치를 무해로 보았다.
+- **tool_selection / interpretation (10):** 메모는 "turn 1 count 조회 없이 nearest_pair 호출, decision condition_value {count:0} 임의값"(rank 35, 45 등 7건)이나 "image_stats region=noisiest_region(error) 후 사분면별 호출 없음"(2건)이다. AI는 해석이 아니라 도구 선택을 첫 이탈로 보았다.
+- **planning_branch / interpretation (8):** 메모는 "turn 1 plan if rhs가 문자열(\"4\", \"3\"), decision chosen=null, 받은 값으로는 then(또는 else)이어야 함"이고 "해석 branch=null은 이 값에서 결과 같아 무해"를 곁들인 것도 있다(rank 10, 31 등). 일괄 계획에서 조건값이 문자열이라 분기가 실행되지 않은 경우이다.
+
+### 해석 시 유의
+- 일치율 0.300, 카파 0.137은 위 정의(실행 단위 부트스트랩, 10,000회)로 계산한 값이다. 단계별 건수 분포가 달라 불일치가 한 방향에 몰려 있다(자동은 해석 42건, AI는 해석 13건).
+- 1차(110건)는 구현 오류를 찾은 점검 단계이고 이 결과가 검증 결과이다. 이 결과를 본 뒤에도 분류 코드는 바꾸지 않는다.

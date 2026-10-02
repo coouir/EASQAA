@@ -13,6 +13,7 @@ kappa is undefined are skipped and counted).
 import argparse
 import csv
 import random
+import re
 from collections import Counter
 from pathlib import Path
 
@@ -51,9 +52,25 @@ def kappa_ci(a: list, b: list, boot: int = B, seed: int = SEED) -> tuple[float |
     return vals[int(0.025 * len(vals))], vals[min(len(vals) - 1, int(0.975 * len(vals)))], skipped
 
 
-def compare(human: list[dict], key: list[dict]) -> dict:
+def confidence(note: str) -> str:
+    """The confidence written at the very start of a note: `[high]`, `[medium]`, `[low]`; `none` if there is none."""
+    m = re.match(r"\s*\[(high|medium|low)\]", note or "", flags=re.IGNORECASE)
+    return m.group(1).lower() if m else "none"
+
+
+def agreement_by(done: list[dict], keyed: dict, group) -> dict:
+    """{group value: (n, agreements)} over the labelled runs; `group(human_row, key_row)` gives the group."""
+    out: dict = {}
+    for h in done:
+        k = keyed[h["run_id"]]
+        n, a = out.get(group(h, k), (0, 0))
+        out[group(h, k)] = (n + 1, a + (h["human_first_deviation"].strip() == k["auto_first_deviation"]))
+    return out
+
+
+def compare(human: list[dict], key: list[dict], exclude: frozenset = frozenset()) -> dict:
     keyed = {k["run_id"]: k for k in key}
-    done = [h for h in human if (h.get("human_first_deviation") or "").strip() and h["run_id"] in keyed]
+    done = [h for h in human if (h.get("human_first_deviation") or "").strip() and h["run_id"] in keyed and h["run_id"] not in exclude]
     unknown_ids = [h["run_id"] for h in human if h["run_id"] not in keyed]
     hum = [h["human_first_deviation"].strip() for h in done]
     aut = [keyed[h["run_id"]]["auto_first_deviation"] for h in done]
@@ -71,7 +88,7 @@ def compare(human: list[dict], key: list[dict]) -> dict:
            for h, x, y in zip(done, hum, aut, strict=True) if x != y]
     return {"n": n, "agree": sum(x == y for x, y in zip(hum, aut, strict=True)), "kappa": kappa(hum, aut), "kappa_lo": lo, "kappa_hi": hi,
             "kappa_skipped": skipped, "labels": labels, "confusion": conf, "per_stage": per_stage, "disagreements": dis,
-            "ids_not_in_key": unknown_ids}
+            "ids_not_in_key": unknown_ids, "done": done, "keyed": keyed}
 
 
 def write_csv(path: Path, rows: list[dict], cols: list[str]) -> None:
