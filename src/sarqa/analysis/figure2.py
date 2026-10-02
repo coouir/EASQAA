@@ -2,13 +2,13 @@
 
     python src/sarqa/analysis/figure2.py --analysis outputs/analysis --out outputs/analysis/figures
 
-(a) share of all 360 questions answered wrongly, stacked: input only / both / agent only
-(b) first-deviation stage of the agent-error runs, stacked, in %
+(a) share of all 360 questions answered wrongly, stacked: input only / both / agent only (total on top)
+(b) first-deviation stage of the agent-error runs, stacked, in % (n of agent-error runs on top)
 
 Every number is read from `decomposition_cells.csv` and `decomposition_first_deviation.csv`. The script needs
 only matplotlib (no sarqa import, so it runs in any environment that has it). Font: HCR Batang (함초롬바탕),
 looked up by file path when matplotlib's cache does not know it; there is no fallback, a missing font stops the run.
-One-column size 8 cm x 6 cm, 8 pt text; gray levels and hatches together so it reads in black and white.
+One-column size 8 cm x 7 cm, 8 pt text; gray levels and hatches together so it reads in black and white.
 """
 
 import argparse
@@ -20,13 +20,15 @@ CONDITIONS = (1, 2, 4, 5)
 COND_LABEL = {1: "라벨", 2: "탐지", 4: "라벨", 5: "탐지"}
 METHOD = (("단계별", (1, 2)), ("일괄", (4, 5)))
 CELLS = (("input_only", "입력만"), ("both", "둘 다"), ("agent_only", "에이전트만"))
-STAGES = (("interpretation", "해석"), ("tool_selection", "도구 선택·호출"), ("result_reading", "결과 해석"),
+STAGES = (("interpretation", "질문 해석"), ("tool_selection", "도구 선택·호출"), ("result_reading", "결과 해석"),
           ("calculation", "계산"), ("exec_fail", "실행 실패"))
 OTHER_STAGES = ("planning_branch", "answer_formatting", "unknown")   # 0 everywhere in the main run; checked below
-GRAYS = ("#f2f2f2", "#bdbdbd", "#7a7a7a", "#3d3d3d", "#000000")
-HATCHES = ("", "///", "xxx", "...", "\\\\\\")
+# fill + hatch pairs; panel (a) and panel (b) share no pair (a: plain, /, x; b: dots, dashes, \\, |, solid black)
+STYLE_A = (("#f2f2f2", ""), ("#bdbdbd", "///"), ("#7a7a7a", "xxx"))
+STYLE_B = (("#f2f2f2", "..."), ("#bdbdbd", "---"), ("#7a7a7a", "\\\\\\"), ("#d9d9d9", "|||"), ("#000000", ""))
 FONT_NAME = "HCR Batang"
 CM = 1 / 2.54
+WIDTH_CM, HEIGHT_CM = 8, 7
 
 
 def read_csv(path: Path) -> list[dict]:
@@ -82,15 +84,16 @@ def minus_ok(font_manager) -> bool:
     return FT2Font(path).get_char_index(0x2212) != 0
 
 
-def stacked(ax, data: dict[int, dict[str, float]], parts, ylabel: str, ymax: float):
+def stacked(ax, data: dict[int, dict[str, float]], parts, styles, ylabel: str, ymax: float):
+    """Stack `parts` bottom to top; returns the stack heights and the legend handles (bottom to top)."""
     bottoms = [0.0] * len(CONDITIONS)
     handles = []
     for i, (key, label) in enumerate(parts):
         vals = [data[c].get(key, 0.0) for c in CONDITIONS]
-        bar = ax.bar(range(len(CONDITIONS)), vals, 0.68, bottom=bottoms, color=GRAYS[i], hatch=HATCHES[i],
+        bar = ax.bar(range(len(CONDITIONS)), vals, 0.68, bottom=bottoms, color=styles[i][0], hatch=styles[i][1],
                      edgecolor="black", linewidth=0.5, label=label)
         handles.append(bar)
-        bottoms = [b + v for b, v in zip(bottoms, vals)]
+        bottoms = [b + v for b, v in zip(bottoms, vals, strict=True)]
     ax.set_ylim(0, ymax)
     ax.set_ylabel(ylabel)
     ax.set_xticks(range(len(CONDITIONS)))
@@ -104,7 +107,13 @@ def stacked(ax, data: dict[int, dict[str, float]], parts, ylabel: str, ymax: flo
     ax.tick_params(length=2, width=0.5)
     for s in ax.spines.values():
         s.set_linewidth(0.5)
-    return bottoms
+    return bottoms, handles
+
+
+def agent_error_counts(rows: list[dict]) -> dict[int, int]:
+    """Number of agent-error runs per condition (the `(all agent-error runs)` rows)."""
+    return {int(r["condition"]): int(r["runs"]) for r in rows
+            if int(r["condition"]) in CONDITIONS and r["first_deviation"] == "(all agent-error runs)"}
 
 
 def make(analysis: Path, out: Path) -> list[Path]:
@@ -118,16 +127,25 @@ def make(analysis: Path, out: Path) -> list[Path]:
     plt.rcParams.update({"font.size": 8, "axes.labelsize": 8, "xtick.labelsize": 8, "ytick.labelsize": 8,
                          "legend.fontsize": 8, "hatch.linewidth": 0.4, "pdf.fonttype": 42, "ps.fonttype": 42})
     cells = cell_shares(read_csv(analysis / "decomposition_cells.csv"))
-    stages = stage_shares(read_csv(analysis / "decomposition_first_deviation.csv"))
-    fig, (a, b) = plt.subplots(1, 2, figsize=(8 * CM, 6 * CM))
-    tops = stacked(a, cells, CELLS, "오답 비율 (%)", 50)
-    stacked(b, stages, STAGES, "에이전트 오류 중 (%)", 100)
+    dev_rows = read_csv(analysis / "decomposition_first_deviation.csv")
+    stages = stage_shares(dev_rows)
+    n_err = agent_error_counts(dev_rows)
+    fig, (a, b) = plt.subplots(1, 2, figsize=(WIDTH_CM * CM, HEIGHT_CM * CM))
+    tops, ha = stacked(a, cells, CELLS, STYLE_A, "오답 비율 (%)", 50)
+    a.yaxis.labelpad = 1
+    _, hb = stacked(b, stages, STAGES, STYLE_B, "에이전트 오류 중 (%)", 112)
+    b.set_yticks([0, 25, 50, 75, 100])
+    b.yaxis.labelpad = 1
+    for i, c in enumerate(CONDITIONS):   # numbers on top of the bars
+        a.text(i, tops[i] + 0.8, f"{tops[i]:.1f}", ha="center", va="bottom")
+        b.text(i, 101, f"n={n_err[c]}", ha="center", va="bottom", linespacing=0.9)
     a.set_title("(a)", loc="left", fontsize=8, pad=2)
     b.set_title("(b)", loc="left", fontsize=8, pad=2)
-    for ax, ncol_rows in ((a, len(CELLS)), (b, len(STAGES))):
-        ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.56), frameon=False, ncol=1, handlelength=1.4,
-                  handletextpad=0.4, labelspacing=0.2, borderaxespad=0)
-    fig.subplots_adjust(left=0.13, right=0.99, top=0.94, bottom=0.53, wspace=0.6)
+    # legends under the panels, top entry = top piece of the stack; (b) in two columns, filled down the first column first
+    kw = {"frameon": False, "handlelength": 1.3, "handletextpad": 0.4, "labelspacing": 0.2, "borderaxespad": 0, "columnspacing": 0.8}
+    fig.legend(ha[::-1], [p[1] for p in CELLS][::-1], loc="lower left", bbox_to_anchor=(0.02, 0.0), ncol=1, **kw)
+    fig.legend(hb[::-1], [p[1] for p in STAGES][::-1], loc="lower left", bbox_to_anchor=(0.40, 0.0), ncol=2, **kw)
+    fig.subplots_adjust(left=0.115, right=0.995, top=0.93, bottom=0.34, wspace=0.42)
     out.mkdir(parents=True, exist_ok=True)
     paths = []
     for ext, kw in (("png", {"dpi": 600}), ("pdf", {})):

@@ -99,3 +99,13 @@ def test_figure2_draws_when_matplotlib_and_font_exist(tmp_path):
     except SystemExit as e:
         pytest.skip(str(e))
     assert all(p.exists() for p in paths)
+
+
+def test_figure2_panels_share_no_fill_hatch_pair_and_counts_read_from_csv(tmp_path):
+    f2 = _load_figure2()
+    assert not set(f2.STYLE_A) & set(f2.STYLE_B)
+    assert f2.STAGES[0] == ("interpretation", "질문 해석")
+    dev = tmp_path / "d.csv"
+    dev.write_text("condition,first_deviation,runs,share_of_agent_error_runs\n1,(all agent-error runs),75,1.0\n3,(all agent-error runs),9,1.0\n",
+                   encoding="utf-8-sig")
+    assert f2.agent_error_counts(f2.read_csv(dev)) == {1: 75}
