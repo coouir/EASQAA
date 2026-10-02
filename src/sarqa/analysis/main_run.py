@@ -348,7 +348,7 @@ def run(runs_dir: Path, questions_path: Path, out: Path, split: str = "test") ->
 
 
 def summary_md(tables: dict, runs_dir: Path, out: Path) -> str:
-    intro = (f"입력: `{runs_dir}` (3,960건), 분류는 freeze-v1의 분류기를 그대로 사용(`classified.jsonl`). 신뢰구간: 장면 묶음 23개 단위 "
+    intro = (f"입력: `{runs_dir}` (3,960건), 분류는 freeze-v1 분류기에서 SPEC §11과 어긋난 4곳(#101)만 고친 판을 사용(`classified.jsonl`, 수정 전 결과는 `v1_before_fix/`). 신뢰구간: 장면 묶음 23개 단위 "
              f"부트스트랩 B={B:,}, 시드 {SEED}, 95% 백분위 구간. 모든 비교는 같은 문항끼리 짝지음.")
     L = ["# 본 실행 분석 요약 (숫자만, 해석 없음)", "", intro, ""]
     sec = [("조건별 실행 요약", "failures_by_condition", None),

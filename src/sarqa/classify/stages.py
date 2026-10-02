@@ -92,6 +92,7 @@ class ACall:
     output: dict
     turn: int
     step: str | None = None
+    unresolved: bool = False   # a reference could not be resolved (an earlier step failed): `args` is the raw form
 
 
 @dataclass
@@ -136,7 +137,8 @@ def build_trace(rec: dict) -> Trace:
                 t.calls.append(ACall(act["call_id"], act["tool"],
                                      act["args_resolved"] if isinstance(act.get("args_resolved"), dict)
                                      else (act["args_raw"] if isinstance(act.get("args_raw"), dict) else {}),
-                                     act["args_raw"], _parse(turn.get("tool_output")), n))
+                                     act["args_raw"], _parse(turn.get("tool_output")), n,
+                                     unresolved=not isinstance(act.get("args_resolved"), dict)))
     else:
         t.interp_turn, t.final_turn, t.calc_turn = 1, 1, 2
         for turn in turns:
@@ -145,7 +147,8 @@ def build_trace(rec: dict) -> Trace:
                     t.calls.append(ACall(e["call_id"], e["tool"],
                                          e["args_resolved"] if isinstance(e.get("args_resolved"), dict)
                                          else (e["args_raw"] if isinstance(e["args_raw"], dict) else {}),
-                                         e["args_raw"], _parse(e.get("tool_output")), 1, e.get("step")))
+                                         e["args_raw"], _parse(e.get("tool_output")), 1, e.get("step"),
+                                         unresolved=not isinstance(e.get("args_resolved"), dict)))
                 for d in rec.get("decisions") or []:
                     t.branch_decisions.append((1, d))
             else:
@@ -206,6 +209,27 @@ def call_key(tool: str, args: dict) -> tuple:
     if tool == "image_stats":
         return (tool, region)
     return (tool,)
+
+
+def _skeleton(args) -> dict:
+    """Arguments with every reference (`$id.field.path`) replaced by its field path, ids dropped: two calls whose
+    references have the same structure compare equal even if one of them could not be resolved."""
+    out = {}
+    for k, v in (args if isinstance(args, dict) else {}).items():
+        if isinstance(v, str) and v.startswith("$"):
+            out[k] = ("ref", v[1:].split(".", 1)[1] if "." in v else "")
+        else:
+            out[k] = v
+    return out
+
+
+def same_call_structure(agent: "ACall", gold_call) -> bool:
+    """For an agent call whose references could not be resolved (an earlier step failed): the call is judged by the
+    structure of its raw arguments against the gold call's raw arguments (SPEC §11.1: a later stage only asks
+    whether what was received was handled correctly, a failed earlier step is not this call's error)."""
+    if not agent.unresolved or agent.tool != gold_call.tool:
+        return False
+    return call_key(agent.tool, _skeleton(agent.raw_args)) == call_key(gold_call.tool, _skeleton(gold_call.args))
 
 
 # ---------------------------------------------------------------- usage tracking (harmless test)
@@ -306,6 +330,8 @@ def _match(trace: Trace, exp: Expected):
         k = call_key(a.tool, a.args)
         hit = next((c for c in remaining if call_key(c.tool, c.resolved_args or {}) == k), None)
         if hit is None:
+            hit = next((c for c in remaining if same_call_structure(a, c)), None)
+        if hit is None:
             unmatched.append(a)
         else:
             remaining.remove(hit)
@@ -382,7 +408,16 @@ def _value_used(trace: Trace, src: str, fld: str, value, rec: dict) -> bool:
     return ans is not None and same_value(ans, value)
 
 
-def stage3(trace: Trace, rec: dict, question: dict) -> list[Dev]:
+def gold_branch(exps: list[Expected] | None) -> str | None:
+    """The branch the received values give (top-level `if` of the gold program), or None."""
+    if not exps:
+        return None
+    gold = next((e for e in exps if e.name == "gold"), exps[0])
+    top = [d for d in gold.result.decisions if d.get("top_level") and d.get("chosen")]
+    return top[-1]["chosen"] if top else None
+
+
+def stage3(trace: Trace, rec: dict, question: dict, exps: list[Expected] | None = None) -> list[Dev]:
     devs = []
     for turn, item in trace.readings:
         src, fld = _split_from(item)
@@ -395,7 +430,9 @@ def stage3(trace: Trace, rec: dict, question: dict) -> list[Dev]:
                             f"{src}.{fld}: wrote {item.get('value')!r}, result has {actual!r}",
                             harmless=not _value_used(trace, src, fld, item.get("value"), rec)))
     spec = question.get("branch_spec") or {}
-    for turn, d in trace.llm_decisions:
+    correct_branch = gold_branch(exps)
+    last = len(trace.llm_decisions) - 1
+    for idx, (turn, d) in enumerate(trace.llm_decisions):
         if not question["has_branch"]:
             continue
         src, fld = _split_from({"from": str(d.get("condition_from", "")).split(".")[0],
@@ -406,8 +443,11 @@ def stage3(trace: Trace, rec: dict, question: dict) -> list[Dev]:
             devs.append(Dev(3, turn, "decision_source_missing", f"condition_from {d.get('condition_from')}"))
             continue
         if not same_value(unwrap_value(d.get("condition_value"), fld), actual):
+            # the same harmless test as for a reading (SPEC §11.1): the wrong value does not matter if the branch it chose
+            # is the one the right value gives, or if a later decision replaced it (nothing after used it)
+            harmless = idx < last or (correct_branch is not None and d.get("chosen") == correct_branch)
             devs.append(Dev(3, turn, "decision_value_mismatch",
-                            f"wrote {d.get('condition_value')!r}, result has {actual!r}"))
+                            f"wrote {d.get('condition_value')!r}, result has {actual!r}", harmless=harmless))
             continue
         tools, want = BRANCH_SOURCE.get(spec.get("on"), ((), None))
         if call is not None and want and (call.tool not in tools or fld.split(".")[-1] != want):
@@ -442,6 +482,15 @@ def _calc_args(args: dict) -> dict:
     return {k: v for k, v in (args or {}).items() if v is not None}
 
 
+def _is_final_value(rec: dict, call: ACall) -> bool:
+    """Is the run's answer this calc's result? An error output, or one without `result`, is no value."""
+    out = call.output if isinstance(call.output, dict) else {}
+    if "error" in out or out.get("result") is None:
+        return False
+    ans = (rec.get("answer") or {}).get("value")
+    return ans is not None and same_value(ans, out["result"])
+
+
 def stage5(trace: Trace, exp: Expected, has_answer: bool, rec: dict) -> list[Dev]:
     devs = []
     turn_of = (lambda c: trace.calc_turn or c.turn)
@@ -449,15 +498,13 @@ def stage5(trace: Trace, exp: Expected, has_answer: bool, rec: dict) -> list[Dev
     gold = [c for c in exp.result.calls if c.tool == "calc"]
     for i, c in enumerate(agent):
         if i >= len(gold):
-            used = call_used_later(trace, c) or same_value((rec.get("answer") or {}).get("value"),
-                                                           c.output.get("result"))
+            used = call_used_later(trace, c) or _is_final_value(rec, c)
             devs.append(Dev(5, turn_of(c), "extra_calc", f"{c.call_id}", harmless=not used))
             continue
         g = gold[i]
         ga, aa = _calc_args(g.resolved_args), _calc_args(c.args)
         if "error" in c.output or ga.get("op") != aa.get("op") or not same_value(ga, aa):
-            used = call_used_later(trace, c) or same_value((rec.get("answer") or {}).get("value"),
-                                                           c.output.get("result"))
+            used = call_used_later(trace, c) or _is_final_value(rec, c)
             devs.append(Dev(5, turn_of(c), "calc_mismatch",
                             f"{c.call_id} {json.dumps(aa, default=str)[:140]} instead of "
                             f"{json.dumps(ga, default=str)[:140]}", harmless=not used and "error" not in c.output))
